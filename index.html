@@ -27,6 +27,7 @@
         .btn-primary-custom { background:var(--accent-blue); color:white; border:none; border-radius:14px; padding:14px; font-weight:bold; width:100%; }
         .btn-ghost { background:transparent; border:1px solid var(--border); color:var(--text-main); border-radius:14px; padding:14px; width:100%; margin-top:10px; }
         .group-header { background: #1c253b; padding: 12px 15px; border-radius: 12px; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); }
+        .active-group-badge { background:rgba(59, 130, 246, 0.2); border:1px solid var(--accent-blue); color:var(--accent-blue); padding:4px 12px; border-radius:50px; font-size:0.75rem; font-weight:800; display:inline-block; margin-bottom:10px; }
     </style>
 </head>
 <body>
@@ -41,10 +42,11 @@
 
 <div id="activityTab" class="tab-content active">
     <div class="balance-card">
-        <div style="max-height:160px;"><canvas id="categoryChart"></canvas></div>
-        <div style="text-align:center; margin-top:10px;">
-            <div style="font-size:0.7rem; color:var(--text-dim); text-transform:uppercase;">Trip Spending</div>
-            <div id="totalSpent" style="font-size:2rem; font-weight:900;">₹0</div>
+        <div style="text-align:center;">
+            <div id="activeGroupLabel" class="active-group-badge">No Trip Selected</div>
+            <div style="max-height:140px;"><canvas id="categoryChart"></canvas></div>
+            <div style="font-size:0.7rem; color:var(--text-dim); text-transform:uppercase; margin-top:10px;">Total Spending</div>
+            <div id="totalSpent" style="font-size:2.2rem; font-weight:900;">₹0</div>
         </div>
     </div>
     <div class="container">
@@ -80,7 +82,8 @@
 
 <div id="expenseModal" class="modal-overlay">
     <div class="modal-content-custom">
-        <h5 id="modalTitle" style="font-weight:900;">Expense</h5>
+        <h5 id="modalTitle" style="font-weight:900; margin-bottom:5px;">Expense</h5>
+        <div id="modalGroupContext" style="font-size:0.75rem; color:var(--accent-blue); margin-bottom:15px; font-weight:700;"></div>
         <input type="hidden" id="editExpId">
         <select id="expCategory" class="form-input">
             <option value="🍛 Food">🍛 Food</option><option value="⛽ Petrol">⛽ Petrol</option>
@@ -89,7 +92,9 @@
         </select>
         <input type="text" id="expDesc" class="form-input" placeholder="Description">
         <input type="number" id="expAmount" class="form-input" placeholder="Amount (₹)">
+        <label class="small text-dim">PAID BY</label>
         <select id="expPayer" class="form-input"></select>
+        <label class="small text-dim">SPLIT BETWEEN</label>
         <div id="participantList" style="max-height: 120px; overflow-y: auto; margin-bottom: 15px; border:1px solid var(--border); padding:10px; border-radius:12px;"></div>
         <button class="btn-primary-custom" onclick="saveExpense()">Confirm</button>
         <button class="btn-ghost" onclick="closeModal('expenseModal')">Cancel</button>
@@ -137,6 +142,7 @@ function startApp() {
     db.collection('groups').onSnapshot(snap => {
         GROUPS = snap.docs.map(doc => ({id:doc.id, ...doc.data()}));
         if (!activeGroupId && GROUPS.length > 0) setActiveGroup(GROUPS[0].id);
+        updateActiveGroupLabel();
         renderGroups();
         updateMemberGroupDropdown();
     });
@@ -153,8 +159,19 @@ function startApp() {
     });
 }
 
+function updateActiveGroupLabel() {
+    const el = document.getElementById('activeGroupLabel');
+    if(!activeGroupId) {
+        el.innerText = "No Trip Selected";
+        return;
+    }
+    const group = GROUPS.find(g => g.id === activeGroupId);
+    if(group) el.innerHTML = `📍 ${group.name.toUpperCase()}`;
+}
+
 function setActiveGroup(id) {
     activeGroupId = id; localStorage.setItem('activeGroupId', id);
+    updateActiveGroupLabel();
     renderGroups(); renderExpenses(); calculateDebts();
     renderParticipantsChecklist();
     updatePayerDropdown();
@@ -236,7 +253,7 @@ function updateChart(data) {
 function calculateDebts() {
     const gExp = EXPENSES.filter(e => e.groupId === activeGroupId);
     const gMembers = MEMBERS.filter(m => m.groupId === activeGroupId);
-    if (gMembers.length < 2) { document.getElementById('settlementSummary').innerText = "Add at least 2 members to this trip."; return; }
+    if (gMembers.length < 2) { document.getElementById('settlementSummary').innerText = "Add members to this trip."; return; }
     
     let balances = {}; gMembers.forEach(m => balances[m.id] = 0);
     gExp.forEach(exp => {
@@ -265,7 +282,7 @@ function calculateDebts() {
             }
         });
     });
-    document.getElementById('settlementSummary').innerHTML = instructions.length ? instructions.join('') : "✅ This trip is settled!";
+    document.getElementById('settlementSummary').innerHTML = instructions.length ? instructions.join('') : "✅ All clear!";
 }
 
 async function saveExpense() {
@@ -276,7 +293,7 @@ async function saveExpense() {
     const amt = parseFloat(document.getElementById('expAmount').value);
 
     if(!activeGroupId) return alert("Select a trip!");
-    if(!desc || isNaN(amt) || !payerId || parts.length === 0) return alert("Please fill all fields and select members!");
+    if(!desc || isNaN(amt) || !payerId || parts.length === 0) return alert("Fill all fields and select members!");
 
     const data = {
         groupId: activeGroupId, description: desc,
@@ -292,10 +309,12 @@ async function saveExpense() {
 
 function prepareNewExpense() {
     if(!activeGroupId) return alert("Create a trip first!");
+    const group = GROUPS.find(g => g.id === activeGroupId);
     const gMembers = MEMBERS.filter(m => m.groupId === activeGroupId);
     if(gMembers.length === 0) return alert("Add members to this trip first!");
     
     document.getElementById('modalTitle').innerText = "Add Expense";
+    document.getElementById('modalGroupContext').innerText = `Adding to: ${group.name}`;
     document.getElementById('editExpId').value = "";
     document.getElementById('expDesc').value = "";
     document.getElementById('expAmount').value = "";
@@ -307,7 +326,9 @@ function prepareNewExpense() {
 function editExpense(id) {
     const exp = EXPENSES.find(e => e.id === id);
     if(!exp) return;
+    const group = GROUPS.find(g => g.id === exp.groupId);
     document.getElementById('modalTitle').innerText = "Edit Expense";
+    document.getElementById('modalGroupContext').innerText = `Trip: ${group ? group.name : 'Unknown'}`;
     document.getElementById('editExpId').value = id;
     document.getElementById('expDesc').value = exp.description;
     document.getElementById('expAmount').value = exp.amount;
