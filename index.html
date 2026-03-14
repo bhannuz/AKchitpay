@@ -3,20 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thoda Pyaaz Dhalo - Selective Splitting</title>
+    <title>THODP - Smart Expense Tracker</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --bg-dark:#0a0e1a; --card-bg:#141b2d; --input-bg:#1c253b; --accent-blue:#3b82f6; --text-main:#ffffff; --text-dim:#8e9aaf; --border:#252f48; }
-        body { background-color:var(--bg-dark); color:var(--text-main); font-family:'Segoe UI', sans-serif; padding-bottom:120px; }
+        body { background-color:var(--bg-dark); color:var(--text-main); font-family:'Segoe UI', sans-serif; padding-bottom:120px; transition: background 0.3s; }
         .app-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:#070b14; }
         .balance-card { background:linear-gradient(135deg, #1e293b, #0f172a); border-radius:24px; padding:20px; margin:15px; border:1px solid var(--border); }
         .expense-item { background:var(--card-bg); border-radius:18px; padding:15px; margin-bottom:12px; border:1px solid var(--border); display:flex; align-items:center; gap:12px; }
-        .avatar { width:45px; height:45px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:bold; background:#252f48; color:var(--accent-blue); }
+        .avatar { width:45px; height:45px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.2rem; background:var(--input-bg); color:var(--accent-blue); }
         .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:3000; padding:20px; overflow-y:auto; }
         .modal-content-custom { background:var(--card-bg); border-radius:28px; padding:25px; max-width:400px; margin:auto; border:1px solid var(--border); }
-        .form-input { background:var(--input-bg); border:1px solid var(--border); color:white; padding:12px; border-radius:12px; width:100%; margin-bottom:15px; }
+        .form-input { background:var(--input-bg); border:1px solid var(--border); color:white; padding:12px; border-radius:12px; width:100%; margin-bottom:15px; font-size: 0.9rem; }
         .tab-content { display:none; }
         .tab-content.active { display:block; }
         .nav-bar { position:fixed; bottom:0; width:100%; background:#070b14; display:flex; justify-content:space-around; padding:12px 0 25px; border-top:1px solid var(--border); z-index:1000; }
@@ -24,22 +25,34 @@
         .nav-item.active { color:var(--accent-blue); }
         .participant-chip { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.05); padding:8px 12px; border-radius:10px; margin-bottom:5px; font-size:0.85rem; cursor:pointer; }
         .btn-primary-custom { background:var(--accent-blue); color:white; border:none; border-radius:14px; padding:14px; font-weight:bold; width:100%; }
-        .btn-ghost { background:transparent; border:1px solid var(--border); color:white; border-radius:14px; padding:14px; width:100%; margin-top:10px; }
+        .btn-ghost { background:transparent; border:1px solid var(--border); color:var(--text-main); border-radius:14px; padding:14px; width:100%; margin-top:10px; }
+        #chartSection { max-height: 200px; position: relative; margin-bottom: 20px; }
     </style>
 </head>
 <body>
 
 <div class="app-header">
-    <div style="font-size:1.3rem; font-weight:900; color:#f39c12;">🧅 THODA PYAAZ DHALO</div>
-    <div style="font-size:0.6rem; color:#10b981; border:1px solid #10b981; padding:2px 8px; border-radius:50px;">LIVE</div>
+    <div style="font-size:1.3rem; font-weight:900; color:#f39c12;">🧅 THODP</div>
+    <div style="display:flex; align-items:center; gap:12px;">
+        <button onclick="toggleTheme()" style="background:none; border:none; font-size:1.2rem;" id="themeIcon">🌙</button>
+        <div style="font-size:0.6rem; color:#10b981; border:1px solid #10b981; padding:2px 8px; border-radius:50px;">LIVE</div>
+    </div>
 </div>
 
 <div id="activityTab" class="tab-content active">
     <div class="balance-card">
-        <div style="font-size:0.75rem; color:var(--text-dim);">TOTAL SPENDING</div>
-        <div id="totalSpent" style="font-size:2.4rem; font-weight:900;">₹0</div>
+        <div id="chartSection">
+            <canvas id="categoryChart"></canvas>
+        </div>
+        <div class="d-flex justify-content-center align-items-center gap-2 mb-2">
+            <select id="monthFilter" class="form-input" style="width: auto; margin-bottom: 0; padding: 5px 15px; font-size: 0.8rem;" onchange="renderExpenses()">
+                </select>
+        </div>
+        <div style="font-size:0.7rem; color:var(--text-dim); text-align: center; text-transform: uppercase;">Spending for this month</div>
+        <div id="totalSpent" style="font-size:2.2rem; font-weight:900; text-align: center;">₹0</div>
     </div>
     <div class="container">
+        <input type="text" id="expenseSearch" class="form-input" placeholder="🔍 Search Pyaaz, Petrol..." oninput="renderExpenses()">
         <button class="btn-primary-custom mb-4" onclick="prepareNewExpense()">+ Add Expense</button>
         <div id="expenseList"></div>
     </div>
@@ -48,8 +61,8 @@
 <div id="membersTab" class="tab-content">
     <div class="container py-4">
         <div class="balance-card" style="background: rgba(59, 130, 246, 0.1); border-color: var(--accent-blue);">
-            <h6 style="font-size: 0.7rem; color: var(--accent-blue); font-weight: 800; letter-spacing: 1px;">WHO OWES WHOM</h6>
-            <div id="settlementSummary" style="margin-top: 10px; font-size: 0.85rem; color: var(--text-dim);">All clear!</div>
+            <h6 style="font-size: 0.7rem; color: var(--accent-blue); font-weight: 800; letter-spacing: 1px;">NET DEBT SUMMARY</h6>
+            <div id="settlementSummary" style="margin-top: 10px; font-size: 0.85rem; color: var(--text-dim);">Calculating balances...</div>
         </div>
         <div class="d-flex justify-content-between mb-3 mt-4">
             <h5 style="font-weight:900;">Members</h5>
@@ -63,13 +76,22 @@
     <div class="modal-content-custom">
         <h5 id="modalTitle" style="font-weight:900;">Add Expense</h5>
         <input type="hidden" id="editExpId">
+        <label class="small text-dim">CATEGORY</label>
+        <select id="expCategory" class="form-input">
+            <option value="🍛 Food">🍛 Food</option>
+            <option value="⛽ Petrol">⛽ Petrol</option>
+            <option value="🚗 Travel">🚗 Travel</option>
+            <option value="🏠 Rent">🏠 Rent</option>
+            <option value="🛒 Groceries">🛒 Groceries</option>
+            <option value="⚙️ Misc">⚙️ Misc</option>
+        </select>
         <input type="text" id="expDesc" class="form-input" placeholder="Description">
         <input type="number" id="expAmount" class="form-input" placeholder="Amount (₹)">
         <label class="small text-dim">PAID BY</label>
         <select id="expPayer" class="form-input"></select>
         <label class="small text-dim">SPLIT BETWEEN</label>
-        <div id="participantList" style="max-height: 150px; overflow-y: auto; margin-bottom: 15px;"></div>
-        <button class="btn-primary-custom" onclick="saveExpense()">Confirm Transaction</button>
+        <div id="participantList" style="max-height: 120px; overflow-y: auto; margin-bottom: 15px;"></div>
+        <button class="btn-primary-custom" onclick="saveExpense()">Confirm</button>
         <button class="btn-ghost" onclick="closeModal('expenseModal')">Cancel</button>
     </div>
 </div>
@@ -95,8 +117,29 @@ const db = firebase.firestore();
 
 let MEMBERS = [];
 let EXPENSES = [];
+let categoryChart = null;
+
+function initMonthFilter() {
+    const filter = document.getElementById('monthFilter');
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    
+    for (let i = 0; i < 6; i++) {
+        let m = currentMonth - i;
+        let y = currentYear;
+        if (m < 0) { m += 12; y -= 1; }
+        let val = `${y}-${String(m + 1).padStart(2, '0')}`;
+        let opt = document.createElement('option');
+        opt.value = val;
+        opt.innerText = `${months[m]} ${y}`;
+        filter.appendChild(opt);
+    }
+}
 
 function startApp() {
+    initMonthFilter();
     db.collection('members').onSnapshot(snap => {
         MEMBERS = snap.docs.map(doc => ({id:doc.id, ...doc.data()}));
         renderMembers();
@@ -111,40 +154,80 @@ function startApp() {
     });
 }
 
-function renderParticipantsChecklist(selected = []) {
-    const list = document.getElementById('participantList');
-    list.innerHTML = MEMBERS.map(m => `
-        <label class="participant-chip">
-            <input type="checkbox" value="${m.id}" class="split-cb" 
-            ${selected.length === 0 || selected.includes(m.id) ? 'checked' : ''}>
-            ${m.name}
-        </label>
-    `).join('');
+function updateChart(filteredExpenses) {
+    const ctx = document.getElementById('categoryChart').getContext('2d');
+    const categoryTotals = {};
+    filteredExpenses.forEach(exp => {
+        if(exp.type !== 'settlement') {
+            const cat = exp.category || "⚙️ Misc";
+            categoryTotals[cat] = (categoryTotals[cat] || 0) + parseFloat(exp.amount);
+        }
+    });
+    const labels = Object.keys(categoryTotals);
+    const data = Object.values(categoryTotals);
+    if (categoryChart) categoryChart.destroy();
+    categoryChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: ['#3b82f6', '#10b981', '#f39c12', '#ef4444', '#8b5cf6', '#ec4899'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '75%',
+            plugins: { legend: { display: false } }
+        }
+    });
 }
 
 function renderExpenses() {
     const list = document.getElementById('expenseList');
-    let total = 0;
-    list.innerHTML = EXPENSES.map(exp => {
-        if(exp.type !== 'settlement') total += parseFloat(exp.amount || 0);
+    const search = document.getElementById('expenseSearch').value.toLowerCase();
+    const selectedMonth = document.getElementById('monthFilter').value; // YYYY-MM
+    let monthTotal = 0;
+
+    const filteredByMonth = EXPENSES.filter(exp => {
+        if (!exp.timestamp) return false;
+        const date = exp.timestamp.toDate();
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        return `${y}-${m}` === selectedMonth;
+    });
+
+    const filtered = filteredByMonth.filter(e => 
+        e.description.toLowerCase().includes(search) || (e.category && e.category.toLowerCase().includes(search))
+    );
+
+    list.innerHTML = filtered.map(exp => {
+        if(exp.type !== 'settlement') monthTotal += parseFloat(exp.amount || 0);
         const pCount = (exp.participants || MEMBERS.map(m=>m.id)).length;
-        const split = (exp.amount / pCount).toFixed(0);
         const isSettlement = exp.type === 'settlement';
+        const emoji = isSettlement ? '🤝' : (exp.category ? exp.category.split(' ')[0] : '⚙️');
+        
         return `
         <div class="expense-item" style="${isSettlement ? 'border-left: 4px solid #10b981;' : ''}">
-            <div class="avatar">${isSettlement ? '🤝' : (exp.payerName ? exp.payerName[0] : '?')}</div>
-            <div style="flex:1;">
-                <div style="font-weight:bold;">${exp.description}</div>
-                <div style="font-size:0.7rem; color:var(--text-dim);">${isSettlement ? 'Clearance' : 'Paid by ' + exp.payerName + ' ('+pCount+' people)'}</div>
+            <div class="avatar">${emoji}</div>
+            <div style="flex:1; min-width:0;">
+                <div style="font-weight:bold; overflow:hidden; text-overflow:ellipsis;">${exp.description}</div>
+                <div style="font-size:0.7rem; color:var(--text-dim);">${isSettlement ? 'Settlement' : (exp.category || 'Misc') + ' • by ' + exp.payerName}</div>
             </div>
             <div style="text-align:right;">
-                <div style="font-weight:900;">₹${isSettlement ? exp.amount : exp.amount}</div>
-                <button onclick="editExpense('${exp.id}')" style="border:none; background:none; font-size:0.8rem;">✏️</button>
-                <button onclick="deleteExpense('${exp.id}')" style="border:none; background:none; font-size:0.8rem;">🗑️</button>
+                <div style="font-weight:900;">₹${exp.amount}</div>
+                <div style="display:flex; gap:8px; justify-content:flex-end;">
+                    <button onclick="editExpense('${exp.id}')" style="border:none; background:none;">✏️</button>
+                    <button onclick="deleteExpense('${exp.id}')" style="border:none; background:none;">🗑️</button>
+                </div>
             </div>
         </div>`;
     }).join('');
-    document.getElementById('totalSpent').innerText = '₹' + total.toLocaleString('en-IN');
+    
+    document.getElementById('totalSpent').innerText = '₹' + monthTotal.toLocaleString('en-IN');
+    updateChart(filteredByMonth);
 }
 
 function calculateDebts() {
@@ -155,20 +238,13 @@ function calculateDebts() {
         const amt = parseFloat(exp.amount);
         const participants = exp.participants || MEMBERS.map(m=>m.id);
         const share = amt / participants.length;
-        
-        // Payer is owed money back
         balances[exp.payerId] += amt;
-        // Participants owe their share
-        participants.forEach(pId => {
-            if(balances[pId] !== undefined) balances[pId] -= share;
-        });
+        participants.forEach(pId => { if(balances[pId] !== undefined) balances[pId] -= share; });
     });
-
     let instructions = [];
     let tempBal = {...balances};
     let debtors = MEMBERS.filter(m => tempBal[m.id] < -0.5).sort((a,b) => tempBal[a.id] - tempBal[b.id]);
     let creditors = MEMBERS.filter(m => tempBal[m.id] > 0.5).sort((a,b) => tempBal[b.id] - tempBal[a.id]);
-
     debtors.forEach(d => {
         creditors.forEach(c => {
             let owed = Math.min(Math.abs(tempBal[d.id]), tempBal[c.id]);
@@ -182,24 +258,21 @@ function calculateDebts() {
             }
         });
     });
-    document.getElementById('settlementSummary').innerHTML = instructions.length ? instructions.join('') : "✅ Settled!";
+    document.getElementById('settlementSummary').innerHTML = instructions.length ? instructions.join('') : "✅ All clear!";
 }
 
 async function saveExpense() {
     const id = document.getElementById('editExpId').value;
     const desc = document.getElementById('expDesc').value;
     const amt = parseFloat(document.getElementById('expAmount').value);
+    const cat = document.getElementById('expCategory').value;
     const pId = document.getElementById('expPayer').value;
     const pName = MEMBERS.find(m => m.id === pId)?.name;
-    const selectedParts = Array.from(document.querySelectorAll('.split-cb:checked')).map(cb => cb.value);
-
-    if (!desc || !amt || !pId || selectedParts.length === 0) return alert("Fill all fields and select at least 1 person.");
-
-    const data = { description: desc, amount: amt, payerId: pId, payerName: pName, participants: selectedParts, timestamp: firebase.firestore.FieldValue.serverTimestamp() };
-
+    const parts = Array.from(document.querySelectorAll('.split-cb:checked')).map(cb => cb.value);
+    if (!desc || !amt || !pId || parts.length === 0) return alert("Fill all fields");
+    const data = { description: desc, amount: amt, category: cat, payerId: pId, payerName: pName, participants: parts, timestamp: firebase.firestore.FieldValue.serverTimestamp() };
     if(id) await db.collection('expenses').doc(id).update(data);
     else await db.collection('expenses').add(data);
-    
     closeModal('expenseModal');
 }
 
@@ -210,6 +283,7 @@ function editExpense(id) {
     document.getElementById('editExpId').value = id;
     document.getElementById('expDesc').value = exp.description;
     document.getElementById('expAmount').value = exp.amount;
+    document.getElementById('expCategory').value = exp.category || "⚙️ Misc";
     document.getElementById('expPayer').value = exp.payerId;
     renderParticipantsChecklist(exp.participants || []);
     openModal('expenseModal');
@@ -226,12 +300,7 @@ function prepareNewExpense() {
 
 async function settleDebt(fId, fName, tId, tName, amt) {
     if(confirm(`Settle ₹${amt.toFixed(0)}?`)) {
-        await db.collection('expenses').add({ 
-            description: `Settlement: ${fName} to ${tName}`, 
-            amount: amt, payerId: fId, payerName: fName, 
-            participants: [tId], // In settlement, only the receiver is 'beneficiary'
-            type: 'settlement', timestamp: firebase.firestore.FieldValue.serverTimestamp() 
-        });
+        await db.collection('expenses').add({ description: `Settlement: ${fName} to ${tName}`, amount: amt, payerId: fId, payerName: fName, participants: [tId], type: 'settlement', timestamp: firebase.firestore.FieldValue.serverTimestamp() });
     }
 }
 
@@ -241,10 +310,25 @@ async function saveMember() {
     closeModal('memberModal');
 }
 
-function renderMembers() {
-    const list = document.getElementById('memberListArea');
-    list.innerHTML = MEMBERS.map(m => `<div class="member-card"><span>${m.name}</span><button class="btn btn-sm text-danger" onclick="deleteMember('${m.id}')">✕</button></div>`).join('');
+function toggleTheme() {
+    const root = document.documentElement;
+    const icon = document.getElementById('themeIcon');
+    const isDark = getComputedStyle(root).getPropertyValue('--bg-dark').trim() === '#0a0e1a';
+    if (isDark) {
+        root.style.setProperty('--bg-dark', '#f8fafc');
+        root.style.setProperty('--card-bg', '#ffffff'); root.style.setProperty('--input-bg', '#f1f5f9');
+        root.style.setProperty('--text-main', '#0f172a'); root.style.setProperty('--text-dim', '#64748b');
+        root.style.setProperty('--border', '#e2e8f0'); icon.innerText = '☀️';
+    } else {
+        root.style.setProperty('--bg-dark', '#0a0e1a');
+        root.style.setProperty('--card-bg', '#141b2d'); root.style.setProperty('--input-bg', '#1c253b');
+        root.style.setProperty('--text-main', '#ffffff'); root.style.setProperty('--text-dim', '#8e9aaf');
+        root.style.setProperty('--border', '#252f48'); icon.innerText = '🌙';
+    }
 }
+
+function renderMembers() { document.getElementById('memberListArea').innerHTML = MEMBERS.map(m => `<div class="member-card"><span>${m.name}</span><button class="btn btn-sm text-danger" onclick="deleteMember('${m.id}')">✕</button></div>`).join(''); }
+function renderParticipantsChecklist(selected = []) { document.getElementById('participantList').innerHTML = MEMBERS.map(m => `<label class="participant-chip"><input type="checkbox" value="${m.id}" class="split-cb" ${selected.length === 0 || selected.includes(m.id) ? 'checked' : ''}> ${m.name}</label>`).join(''); }
 async function deleteMember(id) { if(confirm("Delete member?")) await db.collection('members').doc(id).delete(); }
 async function deleteExpense(id) { if(confirm("Delete expense?")) await db.collection('expenses').doc(id).delete(); }
 function updatePayerDropdown() { document.getElementById('expPayer').innerHTML = MEMBERS.map(m => `<option value="${m.id}">${m.name}</option>`).join(''); }
