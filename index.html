@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>THODP - Trip Vault</title>
+    <title>Smart Split - Expense Vault</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
@@ -13,9 +13,9 @@
             --bg-dark:#060b19; --sidebar-bg:#0f172a; --card-bg:#1e293b; 
             --accent-blue:#007bff; --text-main:#ffffff; --text-dim:#94a3b8; --border:#334155; 
         }
-        body { background-color:var(--bg-dark); color:var(--text-main); font-family:'Segoe UI', sans-serif; margin:0; display: flex; height: 100vh; overflow: hidden; }
+        body { background-color:var(--bg-dark); color:var(--text-main); font-family:'Segoe UI', sans-serif; margin:0; display: flex; height: 100vh; overflow: hidden; transition: 0.3s; }
         
-        /* Sidebar Layout */
+        /* Sidebar Navigation */
         .sidebar { width: 280px; background: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
         .sidebar-header { padding: 25px 20px; font-size: 1.4rem; font-weight: 800; color: #f39c12; display: flex; align-items: center; gap: 10px; }
         .sidebar-menu { flex: 1; overflow-y: auto; padding: 10px; }
@@ -27,76 +27,87 @@
         .nav-link-custom.active { background: var(--accent-blue); color: white; font-weight: 600; }
         .count-badge { background: rgba(0,0,0,0.2); padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; }
 
-        /* Main Content */
+        /* Main Content Area */
         .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; background: var(--bg-dark); }
         .top-bar { padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; background: var(--bg-dark); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); }
         .content-body { padding: 30px; max-width: 1000px; margin: 0 auto; width: 100%; }
 
-        /* SAP Library Card Style */
+        /* Card Layout (SAP Inspired) */
         .sap-card { 
             background: var(--card-bg); border-radius: 12px; padding: 20px 25px; margin-bottom: 15px; 
             border-left: 4px solid #f39c12; display: flex; justify-content: space-between; align-items: center;
-            transition: transform 0.2s; cursor: pointer; position: relative;
+            transition: transform 0.2s; cursor: pointer;
         }
         .sap-card:hover { transform: translateX(5px); background: #2d3748; }
         .sap-card-title { font-size: 1.1rem; font-weight: 500; }
         
-        .form-control-sap { background: white; border-radius: 6px; padding: 10px 15px; border: none; width: 100%; max-width: 400px; margin-right: 10px; }
-        .btn-sap { background: #f39c12; color: black; font-weight: 600; border: none; border-radius: 6px; padding: 10px 20px; }
+        .form-control-sap { background: white; border-radius: 6px; padding: 10px 15px; border: none; width: 100%; max-width: 400px; color: #333; }
+        .btn-sap { background: #f39c12; color: black; font-weight: 600; border: none; border-radius: 6px; padding: 10px 20px; white-space: nowrap; }
         
-        /* Mobile Optimization */
-        @media (max-width: 768px) {
-            body { flex-direction: column; }
-            .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
-            .sidebar-menu { display: flex; overflow-x: auto; padding: 10px; }
-            .nav-link-custom { flex-shrink: 0; margin-right: 10px; }
-        }
+        .balance-card { background:linear-gradient(135deg, #1e293b, #0f172a); border-radius:20px; padding:20px; border:1px solid var(--border); text-align: center; }
 
-        .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:3000; padding:20px; overflow-y:auto; }
+        /* Modals & Participants */
+        .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:3000; padding:20px; overflow-y:auto; }
         .modal-content-custom { background:var(--sidebar-bg); border-radius:15px; padding:30px; max-width:500px; margin:50px auto; border: 1px solid var(--border); }
         .form-input { background:var(--bg-dark); border:1px solid var(--border); color:white; padding:12px; border-radius:8px; width:100%; margin-bottom:15px; }
+        .participant-chip { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.05); padding:10px; border-radius:8px; margin-bottom:5px; cursor:pointer; }
+        
+        .tab-content { display:none; }
+        .tab-content.active { display:block; }
+        #chartContainer { height: 180px; margin-bottom: 20px; }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            body { flex-direction: column; overflow-y: auto; height: auto; }
+            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+            .sidebar-menu { display: flex; overflow-x: auto; padding: 10px; }
+            .nav-link-custom { flex-shrink: 0; margin-right: 10px; padding: 8px 12px; font-size: 0.8rem; }
+            .top-bar { flex-direction: column; gap: 15px; padding: 15px; }
+            .form-control-sap { max-width: 100%; }
+        }
     </style>
 </head>
 <body>
 
 <div class="sidebar">
-    <div class="sidebar-header">📚 Trip Library</div>
+    <div class="sidebar-header">💸 Smart Split</div>
     <div class="sidebar-menu">
         <div style="font-size: 0.65rem; color: var(--text-dim); padding: 10px 15px; text-transform: uppercase; letter-spacing: 1px;">Navigation</div>
-        <div class="nav-link-custom" onclick="switchTab('activity')" id="nav-activity">Activity</div>
-        <div class="nav-link-custom" onclick="switchTab('members')" id="nav-members">Members</div>
+        <div class="nav-link-custom active" onclick="switchTab('activity')" id="nav-activity"><span>Activity</span></div>
+        <div class="nav-link-custom" onclick="switchTab('members')" id="nav-members"><span>Members</span></div>
         
-        <div style="font-size: 0.65rem; color: var(--text-dim); padding: 20px 15px 10px; text-transform: uppercase; letter-spacing: 1px;">Recent Trips</div>
+        <div style="font-size: 0.65rem; color: var(--text-dim); padding: 20px 15px 10px; text-transform: uppercase; letter-spacing: 1px;">Groups</div>
         <div id="sidebarGroups"></div>
         
-        <div class="nav-link-custom" style="color: #f39c12; margin-top: 10px;" onclick="openModal('groupModal')">+ Add New Trip</div>
+        <div class="nav-link-custom" style="color: #f39c12; margin-top: 10px;" onclick="openModal('groupModal')"><span>+ New Group</span></div>
     </div>
 </div>
 
 <div class="main-content">
     <div class="top-bar">
-        <input type="text" id="expenseSearch" class="form-control-sap" placeholder="Search topic..." oninput="renderExpenses()">
+        <input type="text" id="expenseSearch" class="form-control-sap" placeholder="Search by name or category..." oninput="renderExpenses()">
         <div class="d-flex gap-2">
-            <button class="btn-sap" onclick="prepareNewExpense()">+ Add New Topic</button>
+            <button class="btn-sap" onclick="prepareNewExpense()">+ Add Expense</button>
             <button onclick="toggleTheme()" style="background:none; border:none; font-size:1.2rem;" id="themeIcon">🌙</button>
         </div>
     </div>
 
     <div class="content-body">
-        <h2 id="currentTripName" style="margin-bottom: 30px; font-weight: 700;">Select a Trip</h2>
+        <h2 id="currentTripName" style="margin-bottom: 30px; font-weight: 700;">Expense Library</h2>
 
         <div id="activityView" class="tab-content active">
             <div class="row g-3 mb-4">
                 <div class="col-md-6">
-                    <div class="balance-card m-0" style="height: 100%;">
-                        <div style="font-size: 0.8rem; color: var(--text-dim);">TRIP TOTAL</div>
+                    <div class="balance-card h-100">
+                        <div id="chartContainer"><canvas id="categoryChart"></canvas></div>
+                        <div style="font-size: 0.8rem; color: var(--text-dim);">GROUP SPENDING</div>
                         <div id="totalSpent" style="font-size: 2.2rem; font-weight: 800;">₹0</div>
                     </div>
                 </div>
                 <div class="col-md-6">
-                    <div class="balance-card m-0" style="height: 100%; border-color: var(--accent-blue);">
-                        <div style="font-size: 0.8rem; color: var(--text-dim);">SETTLEMENT STATUS</div>
-                        <div id="settlementSummary" style="font-size: 0.9rem; margin-top: 5px;">✅ Settled</div>
+                    <div class="balance-card h-100" style="border-color: var(--accent-blue);">
+                        <h6 style="font-size: 0.7rem; color: var(--accent-blue); letter-spacing: 1px; margin-bottom: 15px;">SETTLEMENT SUMMARY</h6>
+                        <div id="settlementSummary" style="font-size: 0.9rem; text-align: left; max-height: 150px; overflow-y: auto;">Select a group...</div>
                     </div>
                 </div>
             </div>
@@ -105,7 +116,7 @@
 
         <div id="membersView" class="tab-content">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h4>Members in this Trip</h4>
+                <h4>Group Members</h4>
                 <button class="btn btn-sm btn-outline-primary" onclick="openAddMemberModal()">+ Add Person</button>
             </div>
             <div id="memberListArea"></div>
@@ -115,48 +126,55 @@
 
 <div id="expenseModal" class="modal-overlay">
     <div class="modal-content-custom">
-        <h4 id="modalTitle">Expense Detail</h4>
+        <h4 id="modalTitle">Record Expense</h4>
         <input type="hidden" id="editExpId">
         <select id="expCategory" class="form-input">
             <option value="🍛 Food">Food</option><option value="⛽ Petrol">Petrol</option>
-            <option value="🚗 Travel">Travel</option><option value="⚙️ Misc">Misc</option>
+            <option value="🚗 Travel">Travel</option><option value="🏠 Stay">Stay</option>
+            <option value="⚙️ Misc">Misc</option>
         </select>
-        <input type="text" id="expDesc" class="form-input" placeholder="Topic name...">
+        <input type="text" id="expDesc" class="form-input" placeholder="Description (e.g., Lunch at Dhaba)">
         <input type="number" id="expAmount" class="form-input" placeholder="Amount (₹)">
         <label class="small text-dim">Paid By</label>
         <select id="expPayer" class="form-input"></select>
-        <label class="small text-dim">Participated</label>
-        <div id="participantList" style="max-height: 120px; overflow-y: auto; margin-bottom: 15px; border:1px solid var(--border); padding:10px; border-radius:8px;"></div>
-        <button class="btn-primary-custom w-100" onclick="saveExpense()">Confirm Transaction</button>
-        <button class="btn btn-link w-100 mt-2 text-dim" onclick="closeModal('expenseModal')">Cancel</button>
+        <label class="small text-dim">Split Between</label>
+        <div id="participantList" style="max-height: 150px; overflow-y: auto; margin-bottom: 15px; border:1px solid var(--border); padding:10px; border-radius:8px;"></div>
+        <button class="btn btn-primary w-100 py-3" onclick="saveExpense()">Confirm Transaction</button>
+        <button class="btn btn-link w-100 text-dim mt-2" onclick="closeModal('expenseModal')">Cancel</button>
     </div>
 </div>
 
 <div id="groupModal" class="modal-overlay">
     <div class="modal-content-custom">
-        <h5>New Library Group</h5>
-        <input type="text" id="groupName" class="form-input" placeholder="e.g. Europe Trip 2026">
-        <button class="btn-primary-custom w-100" onclick="saveGroup()">Create Group</button>
+        <h5>Create New Group</h5>
+        <input type="text" id="groupName" class="form-input" placeholder="Group Name (e.g. Goa 2026)">
+        <button class="btn btn-primary w-100" onclick="saveGroup()">Create</button>
         <button class="btn btn-link w-100 text-dim" onclick="closeModal('groupModal')">Cancel</button>
     </div>
 </div>
 
 <div id="memberModal" class="modal-overlay">
     <div class="modal-content-custom">
-        <h5>Add Member to Trip</h5>
+        <h5>Add Member</h5>
         <input type="text" id="memName" class="form-input" placeholder="Full Name">
-        <button class="btn-primary-custom w-100" onclick="saveMember()">Add</button>
+        <button class="btn btn-primary w-100" onclick="saveMember()">Add to Current Group</button>
         <button class="btn btn-link w-100 text-dim" onclick="closeModal('memberModal')">Cancel</button>
     </div>
 </div>
 
 <script>
-const firebaseConfig = { apiKey: "AIzaSyB9_sBL83skvIaOVAE8msHwIWq8QQwhxFU", projectId: "ak-chit-funds", authDomain: "ak-chit-funds.firebaseapp.com" };
+// Firebase Configuration
+const firebaseConfig = { 
+    apiKey: "AIzaSyB9_sBL83skvIaOVAE8msHwIWq8QQwhxFU", 
+    projectId: "ak-chit-funds", 
+    authDomain: "ak-chit-funds.firebaseapp.com" 
+};
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 let MEMBERS = []; let EXPENSES = []; let GROUPS = [];
 let activeGroupId = localStorage.getItem('activeGroupId') || null;
+let categoryChart = null;
 
 function startApp() {
     db.collection('groups').onSnapshot(snap => {
@@ -176,21 +194,18 @@ function startApp() {
 
 function setActiveGroup(id) {
     activeGroupId = id; localStorage.setItem('activeGroupId', id);
-    const group = GROUPS.find(g => g.id === id);
-    if(group) document.getElementById('currentTripName').innerText = group.name;
+    const g = GROUPS.find(x => x.id === id);
+    if(g) document.getElementById('currentTripName').innerText = g.name;
     renderSidebar(); renderExpenses(); renderMembers(); calculateDebts();
+    updatePayerDropdown(); renderParticipantsChecklist();
 }
 
 function renderSidebar() {
     const list = document.getElementById('sidebarGroups');
     list.innerHTML = GROUPS.map(g => {
-        const mCount = MEMBERS.filter(m => m.groupId === g.id).length;
-        return `
-            <div class="nav-link-custom ${activeGroupId === g.id ? 'active' : ''}" onclick="setActiveGroup('${g.id}')">
-                <span>${g.name}</span>
-                <span class="count-badge">${mCount}</span>
-            </div>
-        `;
+        const count = MEMBERS.filter(m => m.groupId === g.id).length;
+        return `<div class="nav-link-custom ${activeGroupId === g.id ? 'active' : ''}" onclick="setActiveGroup('${g.id}')">
+            <span>${g.name}</span><span class="count-badge">${count}</span></div>`;
     }).join('');
 }
 
@@ -198,130 +213,170 @@ function renderExpenses() {
     const list = document.getElementById('expenseList');
     const search = document.getElementById('expenseSearch').value.toLowerCase();
     let total = 0;
-    const filtered = EXPENSES.filter(e => e.groupId === activeGroupId && e.description.toLowerCase().includes(search));
+    const filtered = EXPENSES.filter(e => e.groupId === activeGroupId && 
+        (e.description.toLowerCase().includes(search) || (e.category && e.category.toLowerCase().includes(search))));
 
     list.innerHTML = filtered.map(exp => {
         if(exp.type !== 'settlement') total += parseFloat(exp.amount || 0);
-        return `
-        <div class="sap-card">
-            <div>
-                <div class="sap-card-title">${exp.description}</div>
-                <div style="font-size: 0.75rem; color: var(--text-dim);">${exp.payerName} • ${exp.category || 'Misc'}</div>
-            </div>
-            <div style="text-align: right;">
-                <div style="font-weight: 700; font-size: 1.1rem;">₹${exp.amount}</div>
-                <div style="display: flex; gap: 10px; margin-top: 5px;">
-                    <span onclick="editExpense('${exp.id}')" style="cursor:pointer">✏️</span>
-                    <span onclick="deleteExpense('${exp.id}')" style="cursor:pointer">🗑️</span>
-                </div>
-            </div>
+        const emoji = exp.category ? exp.category.split(' ')[0] : '⚙️';
+        return `<div class="sap-card">
+            <div><div class="sap-card-title">${exp.description}</div>
+            <div class="small text-dim">${exp.payerName} • ${exp.category || 'Misc'}</div></div>
+            <div class="text-end"><div class="fw-bold">₹${exp.amount}</div>
+            <div class="mt-1"><span onclick="editExpense('${exp.id}')" style="cursor:pointer">✏️</span>
+            <span class="ms-2" onclick="deleteExpense('${exp.id}')" style="cursor:pointer">🗑️</span></div></div>
         </div>`;
     }).join('');
     document.getElementById('totalSpent').innerText = '₹' + total.toLocaleString('en-IN');
+    updateChart(EXPENSES.filter(e => e.groupId === activeGroupId));
+}
+
+function updateChart(groupData) {
+    const ctx = document.getElementById('categoryChart').getContext('2d');
+    const totals = {};
+    groupData.forEach(e => { if(e.type !== 'settlement') totals[e.category || '⚙️ Misc'] = (totals[e.category] || 0) + parseFloat(e.amount); });
+    if (categoryChart) categoryChart.destroy();
+    if(Object.keys(totals).length === 0) return;
+    categoryChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels: Object.keys(totals), datasets: [{ data: Object.values(totals), backgroundColor: ['#3b82f6','#10b981','#f39c12','#ef4444','#8b5cf6'], borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: false } } }
+    });
 }
 
 function calculateDebts() {
     const gExp = EXPENSES.filter(e => e.groupId === activeGroupId);
-    const gMembers = MEMBERS.filter(m => m.groupId === activeGroupId);
-    if (gMembers.length < 2) { document.getElementById('settlementSummary').innerText = "Add members first."; return; }
+    const gMem = MEMBERS.filter(m => m.groupId === activeGroupId);
+    if (gMem.length < 2) return document.getElementById('settlementSummary').innerHTML = "<span class='text-dim'>Add at least 2 members.</span>";
     
-    let balances = {}; gMembers.forEach(m => balances[m.id] = 0);
+    let bal = {}; gMem.forEach(m => bal[m.id] = 0);
     gExp.forEach(exp => {
         const amt = parseFloat(exp.amount);
-        const parts = exp.participants || gMembers.map(m=>m.id);
+        const parts = exp.participants || gMem.map(m=>m.id);
         const share = amt / parts.length;
-        if(balances[exp.payerId] !== undefined) balances[exp.payerId] += amt;
-        parts.forEach(pId => { if(balances[pId] !== undefined) balances[pId] -= share; });
+        if(bal[exp.payerId] !== undefined) bal[exp.payerId] += amt;
+        parts.forEach(pId => { if(bal[pId] !== undefined) bal[pId] -= share; });
     });
     
-    let instructions = [];
-    let tempBal = {...balances};
-    let debtors = gMembers.filter(m => tempBal[m.id] < -1).sort((a,b) => tempBal[a.id] - tempBal[b.id]);
-    let creditors = gMembers.filter(m => tempBal[m.id] > 1).sort((a,b) => tempBal[b.id] - tempBal[a.id]);
+    let html = []; let temp = {...bal};
+    let debtors = gMem.filter(m => temp[m.id] < -1).sort((a,b) => temp[a.id] - temp[b.id]);
+    let creditors = gMem.filter(m => temp[m.id] > 1).sort((a,b) => temp[b.id] - temp[a.id]);
 
     debtors.forEach(d => {
         creditors.forEach(c => {
-            let owed = Math.min(Math.abs(tempBal[d.id]), tempBal[c.id]);
+            let owed = Math.min(Math.abs(temp[d.id]), temp[c.id]);
             if (owed > 1) {
-                instructions.push(`<div style="margin-bottom:5px;"><b>${d.name}</b> owe <b>${c.name}</b> <span style="color:#ef4444">₹${owed.toFixed(0)}</span></div>`);
-                tempBal[d.id] += owed; tempBal[c.id] -= owed;
+                html.push(`<div class="mb-2 d-flex justify-content-between align-items-center">
+                    <span>${d.name} owes ${c.name}</span><b class="text-danger">₹${owed.toFixed(0)}</b></div>`);
+                temp[d.id] += owed; temp[c.id] -= owed;
             }
         });
     });
-    document.getElementById('settlementSummary').innerHTML = instructions.length ? instructions.join('') : "✅ Trip is settled!";
+    document.getElementById('settlementSummary').innerHTML = html.length ? html.join('') : "✅ All Settled!";
 }
 
-function renderMembers() {
-    const area = document.getElementById('memberListArea');
-    const gMembers = MEMBERS.filter(m => m.groupId === activeGroupId);
-    area.innerHTML = gMembers.map(m => `
-        <div class="sap-card" style="border-left-color: #3b82f6;">
-            <div class="sap-card-title">${m.name}</div>
-            <button class="btn btn-sm text-danger" onclick="deleteMember('${m.id}')">Remove</button>
-        </div>`).join('') || '<div class="text-dim">No members in this trip.</div>';
-}
-
-function switchTab(tab) {
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    document.getElementById(tab + 'View').classList.add('active');
-    document.querySelectorAll('.nav-link-custom').forEach(l => l.classList.remove('active'));
-    document.getElementById('nav-' + tab).classList.add('active');
-}
-
-// Logic helpers (save, delete, etc. same as before)
 async function saveExpense() {
     const id = document.getElementById('editExpId').value;
+    const parts = Array.from(document.querySelectorAll('.split-cb:checked')).map(cb => cb.value);
+    if(!activeGroupId || parts.length === 0) return alert("Select members split!");
+    
     const data = {
         groupId: activeGroupId, description: document.getElementById('expDesc').value,
         amount: parseFloat(document.getElementById('expAmount').value),
         category: document.getElementById('expCategory').value,
         payerId: document.getElementById('expPayer').value,
         payerName: MEMBERS.find(m => m.id === document.getElementById('expPayer').value)?.name,
-        participants: Array.from(document.querySelectorAll('.split-cb:checked')).map(cb => cb.value),
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        participants: parts, timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
     if(id) await db.collection('expenses').doc(id).update(data);
     else await db.collection('expenses').add(data);
     closeModal('expenseModal');
 }
 
+function prepareNewExpense() {
+    if(!activeGroupId) return alert("Create a group first!");
+    document.getElementById('modalTitle').innerText = "Add Expense";
+    document.getElementById('editExpId').value = "";
+    document.getElementById('expDesc').value = "";
+    document.getElementById('expAmount').value = "";
+    updatePayerDropdown();
+    renderParticipantsChecklist();
+    openModal('expenseModal');
+}
+
+function editExpense(id) {
+    const exp = EXPENSES.find(e => e.id === id);
+    if(!exp) return;
+    document.getElementById('modalTitle').innerText = "Edit Expense";
+    document.getElementById('editExpId').value = id;
+    document.getElementById('expDesc').value = exp.description;
+    document.getElementById('expAmount').value = exp.amount;
+    document.getElementById('expCategory').value = exp.category || "⚙️ Misc";
+    document.getElementById('expPayer').value = exp.payerId;
+    renderParticipantsChecklist(exp.participants || []);
+    openModal('expenseModal');
+}
+
 async function saveGroup() {
-    const name = document.getElementById('groupName').value;
-    if(name) { const doc = await db.collection('groups').add({name}); setActiveGroup(doc.id); }
+    const n = document.getElementById('groupName').value;
+    if(n) { const doc = await db.collection('groups').add({name: n}); setActiveGroup(doc.id); }
     closeModal('groupModal');
 }
 
 async function saveMember() {
-    const name = document.getElementById('memName').value;
-    if(name && activeGroupId) await db.collection('members').add({name, groupId: activeGroupId});
+    const n = document.getElementById('memName').value;
+    if(n && activeGroupId) await db.collection('members').add({name: n, groupId: activeGroupId});
     closeModal('memberModal');
 }
 
+function renderMembers() {
+    const gMem = MEMBERS.filter(m => m.groupId === activeGroupId);
+    document.getElementById('memberListArea').innerHTML = gMem.map(m => `
+        <div class="sap-card" style="border-left-color: #3b82f6;">
+            <span>${m.name}</span><button class="btn btn-sm text-danger" onclick="deleteMember('${m.id}')">Remove</button>
+        </div>`).join('') || '<div class="text-dim">No members in this group.</div>';
+}
+
 function updatePayerDropdown() {
-    const gMembers = MEMBERS.filter(m => m.groupId === activeGroupId);
-    document.getElementById('expPayer').innerHTML = gMembers.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+    const gMem = MEMBERS.filter(m => m.groupId === activeGroupId);
+    document.getElementById('expPayer').innerHTML = gMem.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
 }
 
 function renderParticipantsChecklist(selected = []) {
-    const gMembers = MEMBERS.filter(m => m.groupId === activeGroupId);
-    document.getElementById('participantList').innerHTML = gMembers.map(m => `
-        <label class="participant-chip"><input type="checkbox" value="${m.id}" class="split-cb" checked> ${m.name}</label>`).join('');
+    const gMem = MEMBERS.filter(m => m.groupId === activeGroupId);
+    document.getElementById('participantList').innerHTML = gMem.map(m => `
+        <label class="participant-chip"><input type="checkbox" value="${m.id}" class="split-cb" 
+        ${selected.length === 0 || selected.includes(m.id) ? 'checked' : ''}> ${m.name}</label>`).join('');
 }
 
-function prepareNewExpense() {
-    if(!activeGroupId) return alert("Select a trip!");
-    document.getElementById('modalTitle').innerText = "Add New Topic";
-    document.getElementById('editExpId').value = "";
-    document.getElementById('expDesc').value = "";
-    document.getElementById('expAmount').value = "";
-    openModal('expenseModal');
+function switchTab(t) {
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById(t + 'View').classList.add('active');
+    document.querySelectorAll('.nav-link-custom').forEach(l => l.classList.remove('active'));
+    document.getElementById('nav-' + t).classList.add('active');
 }
 
 async function deleteExpense(id) { if(confirm("Delete expense?")) await db.collection('expenses').doc(id).delete(); }
-async function deleteMember(id) { if(confirm("Delete member?")) await db.collection('members').doc(id).delete(); }
+async function deleteMember(id) { if(confirm("Remove member?")) await db.collection('members').doc(id).delete(); }
 function openModal(id) { document.getElementById(id).style.display = 'block'; }
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-function toggleTheme() { /* theme logic */ }
+function openAddMemberModal() { if(!activeGroupId) return alert("Select a group!"); openModal('memberModal'); }
+
+function toggleTheme() {
+    const r = document.documentElement;
+    const isDark = getComputedStyle(r).getPropertyValue('--bg-dark').trim() === '#060b19';
+    if(isDark) {
+        r.style.setProperty('--bg-dark', '#f8fafc'); r.style.setProperty('--sidebar-bg', '#ffffff');
+        r.style.setProperty('--card-bg', '#f1f5f9'); r.style.setProperty('--text-main', '#0f172a');
+        r.style.setProperty('--text-dim', '#64748b'); r.style.setProperty('--border', '#e2e8f0');
+        document.getElementById('themeIcon').innerText = '☀️';
+    } else {
+        r.style.setProperty('--bg-dark', '#060b19'); r.style.setProperty('--sidebar-bg', '#0f172a');
+        r.style.setProperty('--card-bg', '#1e293b'); r.style.setProperty('--text-main', '#ffffff');
+        r.style.setProperty('--text-dim', '#94a3b8'); r.style.setProperty('--border', '#334155');
+        document.getElementById('themeIcon').innerText = '🌙';
+    }
+}
 
 document.addEventListener('DOMContentLoaded', startApp);
 </script>
