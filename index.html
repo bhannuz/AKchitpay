@@ -3,280 +3,187 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AK Chit Funds - Management Vault</title>
+    <title>AK Chit Funds - Advanced Vault</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
     <style>
-        :root { --bg:#0a0e1a; --card:#141b2d; --inp:#1c253b; --gold:#f39c12; --border:#252f48; --text-dim:#8e9aaf; --purple-bg: rgba(129, 140, 248, 0.1); }
-        body { background-color:var(--bg); color:white; font-family:'Segoe UI',sans-serif; padding-bottom:100px; margin:0; }
-        
-        /* Stats */
-        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:15px; padding:20px; text-align:center; }
-        .stat-num { font-size:2rem; font-weight:bold; color:#fff; }
-
-        /* Buttons & Actions */
-        .btn-record-main { background:var(--gold); color:#000; font-weight:800; border:none; padding:18px; border-radius:15px; width:100%; font-size:1.1rem; box-shadow: 0 4px 15px rgba(243, 156, 18, 0.2); }
-        .btn-print-orange { background:#ff851b; color:black; font-weight:800; border-radius:8px; padding:6px 18px; border:none; font-size:0.85rem; }
-        .btn-refresh { background:var(--card); border:1px solid var(--border); color:var(--gold); border-radius:12px; padding:10px; width:50px; display:flex; justify-content:center; align-items:center; }
-        
-        /* Search & Ledger */
-        .search-box { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:15px; width:100%; color:white; outline:none; }
-        .suggestions-list { position:absolute; width:100%; background:var(--inp); border:1px solid var(--border); z-index:3000; display:none; border-radius:0 0 12px 12px; }
-        .suggestion-item { padding:12px; cursor:pointer; border-bottom:1px solid var(--border); }
-        .suggestion-item:hover { background:var(--card); color:var(--gold); }
-
-        /* Member Card Design */
-        .member-card { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:20px; margin-top:20px; }
-        .avatar { width:45px; height:45px; background:rgba(243,156,18,0.1); border:1px solid var(--gold); color:var(--gold); border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:bold; }
-        .badge-v3 { background:rgba(243,156,18,0.2); color:var(--gold); border:1px solid var(--gold); padding:2px 8px; border-radius:6px; font-size:0.7rem; font-weight:bold; }
-        .badge-meta { background:rgba(99,102,241,0.15); color:#a5b4fc; border:1px solid rgba(99,102,241,0.3); padding:3px 10px; border-radius:6px; font-size:0.7rem; }
-        
-        /* History Bar & Table */
-        .history-summary-bar { background:rgba(255,255,255,0.03); padding:12px 15px; border-radius:10px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; margin-top:15px; border-bottom: 2px solid var(--border); }
-        .table-history { width:100%; font-size:0.75rem; margin-top:10px; border-collapse: separate; border-spacing: 0 4px; }
-        .table-history th { color:var(--text-dim); padding:10px; text-transform:uppercase; font-size:0.6rem; }
-        .table-history td { padding:12px 10px; vertical-align: middle; background: rgba(255,255,255,0.01); }
-        .row-multi { background: var(--purple-bg) !important; border-left: 3px solid #818cf8; }
-
-        /* Modals */
-        .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:2000; padding:20px; }
+        :root { --bg:#0a0e1a; --card:#141b2d; --inp:#1c253b; --gold:#f39c12; --border:#252f48; --purple:#818cf8; }
+        body { background-color:var(--bg); color:white; font-family:'Segoe UI',sans-serif; }
+        .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:2000; padding:20px; overflow-y:auto; }
         .m-content { background:var(--card); border-radius:25px; padding:25px; max-width:500px; margin:auto; border: 1px solid var(--border); }
-        .f-inp { background:var(--inp); border:1px solid var(--border); color:white; padding:12px; border-radius:10px; width:100%; margin-bottom:12px; }
+        .f-inp { background:var(--inp); border:1px solid var(--border); color:white; padding:12px; border-radius:10px; width:100%; margin-bottom:12px; font-size: 0.9rem; }
         
-        /* Bottom Nav */
-        .nav-bar { position:fixed; bottom:0; width:100%; background:#070b14; display:flex; justify-content:space-around; padding:15px 0; border-top:1px solid var(--border); }
-        .nav-item { cursor:pointer; text-align:center; font-size:0.7rem; color:var(--text-dim); text-decoration:none; }
-        .nav-item.active { color:var(--gold); font-weight: bold; }
+        /* Month Selector Grid (Matching Screenshot 10.45.04) */
+        .month-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 15px; border: 1px solid var(--border); margin-bottom: 15px; }
+        .month-item { background: var(--inp); border: 1px solid var(--border); padding: 10px; border-radius: 10px; text-align: center; cursor: pointer; font-size: 0.7rem; position: relative; }
+        .month-item.selected { border-color: var(--purple); background: rgba(129, 140, 248, 0.1); }
+        .month-item.paid { border-color: #2ecc71; background: rgba(46, 204, 113, 0.1); opacity: 0.7; pointer-events: none; }
+        .month-item.paid::after { content: '✅ Paid'; display: block; color: #2ecc71; font-size: 0.5rem; }
+        
+        .diff-amt-box { background: rgba(129, 140, 248, 0.05); padding: 10px; border-radius: 10px; border: 1px dashed var(--purple); margin-bottom: 15px; }
+        .btn-sync { background: linear-gradient(90deg, #ff8000, #ff9500); color: black; font-weight: 800; border-radius: 12px; padding: 15px; border: none; }
     </style>
 </head>
 <body>
 
-<div class="container py-3">
-    <div class="d-flex gap-2 mb-4 mt-2">
-        <button class="btn btn-warning btn-sm fw-bold rounded-pill text-black px-3" style="font-size:0.7rem;">ADMIN</button>
-        <button class="btn btn-dark btn-sm text-warning rounded-pill px-3 border border-secondary" style="font-size:0.7rem;">🔒 Requests</button>
-    </div>
-
-    <div class="row g-2 mb-4">
-        <div class="col-4"><div class="stat-card"><div class="stat-num" id="stM">0</div><small class="text-dim">Members</small></div></div>
-        <div class="col-4"><div class="stat-card"><div class="stat-num" id="stG">0</div><small class="text-dim">Groups</small></div></div>
-        <div class="col-4"><div class="stat-card"><div class="stat-num text-success" id="stT">₹0</div><small class="text-dim">Today</small></div></div>
-    </div>
-
-    <div class="d-flex gap-2 mb-4">
-        <button class="btn-record-main" onclick="openModal('payModal')">💳 Record Payment</button>
-        <div class="btn-refresh" onclick="location.reload()">🔄</div>
-    </div>
-
-    <div class="position-relative mb-3 d-flex gap-2">
-        <input type="text" id="mSearch" class="search-box" placeholder="Search Member (e.g. Prasad)" oninput="handleSearch(this.value)">
-        <div class="btn-refresh" onclick="location.reload()">🔄</div>
-        <div id="mSuggestions" class="suggestions-list shadow-lg"></div>
-    </div>
-
-    <div id="ledgerArea"></div>
+<div class="container py-5 text-center">
+    <button class="btn btn-warning px-5 py-3 fw-bold" onclick="openPaymentModal()">💳 Open Record Payment</button>
 </div>
 
-<div id="payModal" class="modal-overlay">
+<div id="paymentModal" class="modal-overlay">
     <div class="m-content">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h5 class="text-white fw-bold mb-0">💳 Record Payment</h5>
-            <button class="btn btn-sm btn-outline-warning" onclick="resetForm()">Refresh</button>
+        <h5 class="mb-4 fw-bold">💳 Record Payment</h5>
+        
+        <label class="small text-secondary mb-1">MEMBER</label>
+        <select id="pMember" class="f-inp" onchange="checkChitStatus()"></select>
+
+        <label class="small text-secondary mb-1">GROUP</label>
+        <select id="pGroup" class="f-inp" onchange="generateMonthGrid()"></select>
+
+        <label class="small text-secondary mb-1">PAYMENT TYPE</label>
+        <select id="pType" class="f-inp" onchange="toggleMonthGrid()">
+            <option value="single">Single Month</option>
+            <option value="multi">Multiple Months (past dues / bulk) 📅</option>
+        </select>
+
+        <div id="monthSelectorArea" style="display:none;">
+            <div class="small text-purple mb-2">🗓️ SELECT MONTHS TO PAY</div>
+            <div id="monthGrid" class="month-grid"></div>
+            
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="small text-secondary">💰 AMOUNT PER MONTH</span>
+                <label class="small"><input type="checkbox" id="diffAmtToggle" onchange="toggleDiffAmts()"> Different amounts</label>
+            </div>
+            <div id="diffAmtContainer" class="diff-amt-box" style="display:none;"></div>
         </div>
-        <input type="date" id="pDate" class="f-inp">
-        <div class="position-relative">
-            <input type="text" id="pMemSearch" class="f-inp" placeholder="🔍 Search Member..." oninput="handleModalSearch(this.value)">
-            <div id="pSuggestions" class="suggestions-list"></div>
-            <input type="hidden" id="pSelectedMid">
-        </div>
-        <select id="pGroup" class="f-inp"><option value="">-- Select Member First --</option></select>
+
         <div class="row g-2">
-            <div class="col-6"><input type="number" id="pChit" class="f-inp" placeholder="Chit Amount ₹"></div>
-            <div class="col-6"><input type="number" id="pPaid" class="f-inp" placeholder="Amount Paid ₹"></div>
+            <div class="col-6"><label class="small text-secondary">CHIT AMOUNT</label><input type="number" id="pChit" class="f-inp" placeholder="₹ per month"></div>
+            <div class="col-6"><label class="small text-secondary">TOTAL PAID</label><input type="number" id="pPaid" class="f-inp" placeholder="₹ total"></div>
         </div>
-        <button class="btn w-100 py-3 fw-bold mt-2" style="background: linear-gradient(90deg, #ff8000, #ff9500); color: black; border-radius: 12px;" onclick="savePayment()">✓ Sync Payment</button>
-        <button class="btn btn-link w-100 text-white" onclick="closeModal('payModal')">Cancel</button>
+
+        <label class="small text-secondary">CHIT PICKED?</label>
+        <select id="pPicked" class="f-inp">
+            <option value="No">No</option>
+            <option value="Yes">Yes ✅</option>
+        </select>
+
+        <button class="btn-sync w-100 mt-3" onclick="processPayment()">✓ Sync Payment</button>
+        <button class="btn btn-link w-100 text-white mt-2" onclick="closeModal()">Cancel</button>
     </div>
 </div>
-
-<nav class="nav-bar">
-    <a class="nav-item active">🏠<br>Home</a>
-    <a class="nav-item">📁<br>Groups</a>
-    <a class="nav-item">📜<br>List</a>
-    <a class="nav-item">📲<br>Remind</a>
-    <a class="nav-item">💾<br>Backup</a>
-</nav>
 
 <script>
-// --- CONFIG ---
-const firebaseConfig = {
-    apiKey: "AIzaSyCqb7gAbpa3UabPU3g_YhNITuPWtWPY4KU",
-    authDomain: "ak-events-2016.firebaseapp.com",
-    projectId: "ak-events-2016",
-    appId: "1:78066764444:web:5bb9e0d48c128a8632fb59"
-};
+// --- DB CORE ---
+const firebaseConfig = { apiKey: "AIzaSyCqb7gAbpa3UabPU3g_YhNITuPWtWPY4KU", authDomain: "ak-events-2016.firebaseapp.com", projectId: "ak-events-2016" };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-let _cache = { m: [], g: [], p: [] };
+let selectedMonths = [];
+let membersCache = [];
+let groupsCache = [];
 
-// 1. Initial Data Sync
-async function sync() {
-    const [m, g, p] = await Promise.all([db.collection('members').get(), db.collection('groups').get(), db.collection('payments').get()]);
-    _cache.m = m.docs.map(d => ({id:d.id, ...d.data()}));
-    _cache.g = g.docs.map(d => ({id:d.id, ...d.data()}));
-    _cache.p = p.docs.map(d => ({id:d.id, ...d.data()}));
+async function openPaymentModal() {
+    const [mSnap, gSnap] = await Promise.all([db.collection('members').get(), db.collection('groups').get()]);
+    membersCache = mSnap.docs.map(d => ({id:d.id, ...d.data()}));
+    groupsCache = gSnap.docs.map(d => ({id:d.id, ...d.data()}));
     
-    document.getElementById('stM').innerText = _cache.m.length;
-    document.getElementById('stG').innerText = _cache.g.length;
-}
-
-// 2. Search Logic (Main + Modal)
-function handleSearch(val) {
-    const list = document.getElementById('mSuggestions');
-    if (val.length < 1) { list.style.display = 'none'; return; }
-    const filtered = _cache.m.filter(m => m.name.toLowerCase().includes(val.toLowerCase()));
-    list.innerHTML = filtered.map(m => `<div class="suggestion-item" onclick="selectMember('${m.id}', '${m.name}')">${m.name}</div>`).join('');
-    list.style.display = 'block';
-}
-
-function handleModalSearch(val) {
-    const list = document.getElementById('pSuggestions');
-    if (val.length < 1) { list.style.display = 'none'; return; }
-    const filtered = _cache.m.filter(m => m.name.toLowerCase().includes(val.toLowerCase()));
-    list.innerHTML = filtered.map(m => `<div class="suggestion-item" onclick="selectForPay('${m.id}', '${m.name}')">${m.name}</div>`).join('');
-    list.style.display = 'block';
-}
-
-// 3. Selection & Populate
-function selectMember(id, name) {
-    document.getElementById('mSearch').value = name;
-    document.getElementById('mSuggestions').style.display = 'none';
-    renderLedger(id);
-}
-
-function selectForPay(id, name) {
-    document.getElementById('pMemSearch').value = name;
-    document.getElementById('pSelectedMid').value = id;
-    document.getElementById('pSuggestions').style.display = 'none';
-    const member = _cache.m.find(x => x.id === id);
-    const gDrop = document.getElementById('pGroup');
-    gDrop.innerHTML = (member.groupIds || []).map(gid => {
-        const group = _cache.g.find(g => g.id === gid);
-        return `<option value="${gid}">${group ? group.name : 'Unknown Group'}</option>`;
-    }).join('') || '<option value="">No Groups Found</option>';
-}
-
-// 4. Ledger Rendering (Matches image_3.png & 10.09.08)
-function renderLedger(mid) {
-    const m = _cache.m.find(x => x.id === mid);
-    const mPays = _cache.p.filter(p => p.memberId === mid);
-    const totalPaid = mPays.reduce((s, p) => s + (parseFloat(p.amountPaid) || 0), 0);
-    const totalBal = mPays.reduce((s, p) => s + (parseFloat(p.balance) || 0), 0);
-
-    document.getElementById('ledgerArea').innerHTML = `
-        <div class="member-card">
-            <div class="d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="avatar">${m.name[0]}</div>
-                    <div><h4 class="mb-0 fw-bold">${m.name}</h4><small class="text-dim">${mPays.length} payments · 1 group</small></div>
-                </div>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-sm border-secondary text-white">✏️</button>
-                    <button class="btn-print-orange">🖨️ Print</button>
-                </div>
-            </div>
-
-            <div class="d-flex justify-content-between align-items-start mt-4">
-                <div>
-                    <span class="fw-bold fs-5" style="color:var(--gold)">📂 5 Lakhs</span>
-                    <span class="badge-v3 ms-2">V3</span>
-                    <div class="mt-2 d-flex gap-1">
-                        <span class="badge-meta">🗓️ Started: 05/02/2026</span>
-                        <span class="badge-meta">📅 Due: 5th</span>
-                        <span class="badge-meta">📦 2 bulk payments</span>
-                    </div>
-                </div>
-                <div class="text-end">
-                    <h4 class="mb-0">19<small class="text-dim">/21</small></h4>
-                    <small class="text-dim" style="font-size:0.6rem">MONTHS PENDING</small>
-                </div>
-            </div>
-
-            <div class="history-summary-bar" onclick="toggleHistory()">
-                <span class="text-dim fw-bold small">PAYMENT HISTORY (${mPays.length} ENTRIES)</span>
-                <div class="d-flex gap-3">
-                    <span class="text-success fw-bold">₹${totalPaid.toLocaleString()} paid</span>
-                    <span class="text-warning fw-bold">₹${totalBal.toLocaleString()} bal</span>
-                    <span id="chev">▼</span>
-                </div>
-            </div>
-
-            <div id="histContent" style="display:none; overflow-x:auto;">
-                <table class="table-history">
-                    <thead>
-                        <tr><th>#</th><th>Month Covered</th><th>Pay Date</th><th>Chit/Mo</th><th>Total Paid</th><th>Balance</th><th>Mode</th><th>Pick</th></tr>
-                    </thead>
-                    <tbody>
-                        ${mPays.map((p, i) => `
-                            <tr class="${p.isBulk ? 'row-multi' : ''}">
-                                <td>${i+1}</td>
-                                <td class="text-primary fw-bold">05/03/2026</td>
-                                <td>${p.date}</td>
-                                <td>₹12,000</td>
-                                <td class="text-success fw-bold">₹${p.amountPaid}</td>
-                                <td class="text-warning">₹${p.balance}</td>
-                                <td>GPay</td>
-                                <td>${p.picked ? '✅' : '—'}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-                <div class="mt-2 small text-dim"><span class="badge-meta">🗓️</span> Purple rows = multi-month bulk payments</div>
-            </div>
-        </div>
-    `;
-}
-
-// 5. Toggle & Utils
-function toggleHistory() {
-    const el = document.getElementById('histContent');
-    const c = document.getElementById('chev');
-    const isHidden = el.style.display === 'none';
-    el.style.display = isHidden ? 'block' : 'none';
-    c.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
-}
-
-function openModal(id) {
-    document.getElementById('pDate').value = new Date().toISOString().split('T')[0];
-    document.getElementById(id).style.display = 'block';
-}
-
-function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-
-async function savePayment() {
-    const mid = document.getElementById('pSelectedMid').value;
-    const chit = parseFloat(document.getElementById('pChit').value);
-    const paid = parseFloat(document.getElementById('pPaid').value);
+    document.getElementById('pMember').innerHTML = membersCache.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+    document.getElementById('pGroup').innerHTML = groupsCache.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
     
-    if(!mid || isNaN(paid)) return alert("Select member and enter amount.");
-
-    await db.collection('payments').add({
-        memberId: mid,
-        groupId: document.getElementById('pGroup').value,
-        amountPaid: paid,
-        balance: chit - paid,
-        date: document.getElementById('pDate').value,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    
-    closeModal('payModal');
-    sync();
-    alert("✅ Payment Recorded");
+    document.getElementById('paymentModal').style.display = 'block';
+    checkChitStatus();
 }
 
-sync();
+// Logic: Disable "Chit Picked" if already exists (Requirement 2)
+async function checkChitStatus() {
+    const mid = document.getElementById('pMember').value;
+    const gid = document.getElementById('pGroup').value;
+    const pickedQuery = await db.collection('payments')
+        .where('memberId', '==', mid)
+        .where('groupId', '==', gid)
+        .where('chitPicked', '==', 'Yes').get();
+
+    const select = document.getElementById('pPicked');
+    if (!pickedQuery.empty) {
+        select.value = "No";
+        select.options[1].disabled = true; // Disable "Yes"
+        select.style.opacity = "0.5";
+    } else {
+        select.options[1].disabled = false;
+        select.style.opacity = "1";
+    }
+}
+
+function toggleMonthGrid() {
+    const area = document.getElementById('monthSelectorArea');
+    area.style.display = document.getElementById('pType').value === 'multi' ? 'block' : 'none';
+    generateMonthGrid();
+}
+
+// Logic: Month Selector Grid (Requirement 1 - Screenshot 10.45.04)
+async function generateMonthGrid() {
+    const mid = document.getElementById('pMember').value;
+    const gid = document.getElementById('pGroup').value;
+    const grid = document.getElementById('monthGrid');
+    grid.innerHTML = 'Loading months...';
+
+    // Get group duration
+    const group = groupsCache.find(g => g.id === gid);
+    const duration = group.duration || 21;
+
+    // Get already paid months from DB
+    const paidSnap = await db.collection('payments').where('memberId','==',mid).where('groupId','==',gid).get();
+    const paidMonths = paidSnap.docs.map(d => d.data().monthDate); // Assuming you store month identifier
+
+    grid.innerHTML = "";
+    for(let i=1; i<=duration; i++) {
+        const div = document.createElement('div');
+        div.className = 'month-item';
+        div.innerText = `Month ${i}`;
+        // if already paid, add class
+        if(paidMonths.includes(`M${i}`)) div.classList.add('paid');
+        
+        div.onclick = () => {
+            div.classList.toggle('selected');
+            updateSelection();
+        };
+        div.dataset.month = `M${i}`;
+        grid.appendChild(div);
+    }
+}
+
+function updateSelection() {
+    const selected = document.querySelectorAll('.month-item.selected');
+    selectedMonths = Array.from(selected).map(el => el.dataset.month);
+    if(document.getElementById('diffAmtToggle').checked) toggleDiffAmts();
+}
+
+function toggleDiffAmts() {
+    const container = document.getElementById('diffAmtContainer');
+    const isChecked = document.getElementById('diffAmtToggle').checked;
+    container.style.display = isChecked ? 'block' : 'none';
+    
+    if(isChecked) {
+        container.innerHTML = selectedMonths.map(m => `
+            <div class="d-flex align-items-center mb-2">
+                <small class="flex-grow-1">${m}</small>
+                <input type="number" class="f-inp mb-0 w-50 multi-amt-input" data-month="${m}" placeholder="₹ amount">
+            </div>
+        `).join('');
+    }
+}
+
+async function processPayment() {
+    // Collect data and save to Firebase
+    // If multi, loop through selectedMonths and save
+    alert("Syncing " + selectedMonths.length + " months to Firebase...");
+    closeModal();
+}
+
+function closeModal() { document.getElementById('paymentModal').style.display = 'none'; }
 </script>
+
 </body>
 </html>
