@@ -3,16 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AK Chit Funds - Management Vault</title>
+    <title>AK Chit Funds - Admin v2.5</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root { --bg:#0a0e1a; --card:#141b2d; --inp:#1c253b; --gold:linear-gradient(90deg,#ff9800,#f57c00); --txt:#fff; --dim:#8e9aaf; --brd:#252f48; }
         body { background:var(--bg); color:var(--txt); font-family:'Segoe UI',sans-serif; padding-bottom:100px; margin:0; }
         .app-h { display:flex; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--brd); background:var(--card); position:sticky; top:0; z-index:1000; }
-        .stat-card { background:var(--card); border:1px solid var(--brd); border-radius:15px; padding:12px; text-align:center; height:100%; }
+        .stat-card { background:var(--card); border:1px solid var(--brd); border-radius:15px; padding:12px; text-align:center; }
         .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:2000; padding:20px; overflow-y:auto; }
         .m-content { background:var(--card); border-radius:25px; padding:25px; max-width:450px; margin:auto; border: 1px solid var(--brd); }
         .f-inp { background:var(--inp); border:1px solid var(--brd); color:#fff; padding:12px; border-radius:12px; width:100%; margin-bottom:12px; font-size:0.9rem; }
@@ -21,6 +20,8 @@
         .n-item.active { color:#f39c12; font-weight:bold; }
         .sap-card { background:var(--card); border:1px solid var(--brd); border-radius:12px; padding:15px; margin-bottom:12px; border-left:4px solid #f39c12; }
         .tab-c { display:none; } .tab-c.active { display:block; }
+        .action-btn { cursor:pointer; padding:5px; border-radius:5px; transition:0.2s; }
+        .action-btn:hover { background: rgba(255,255,255,0.1); }
         .group-checkbox-area { max-height:150px; overflow-y:auto; background:var(--inp); padding:10px; border-radius:10px; margin-bottom:15px; border:1px solid var(--brd); }
     </style>
 </head>
@@ -29,8 +30,8 @@
 <header class="app-h">
     <div class="text-warning fw-bold fs-5">AK CHIT FUNDS</div>
     <div class="d-flex gap-2">
-        <button class="btn btn-sm btn-outline-warning" onclick="openModal('memberModal')">+ Member</button>
-        <button class="btn btn-sm btn-outline-success" onclick="openModal('groupModal')">+ Group</button>
+        <button class="btn btn-sm btn-outline-warning" onclick="openMemberModal()">👤+ Member</button>
+        <button class="btn btn-sm btn-outline-success" onclick="openGroupModal()">🏦+ Group</button>
     </div>
 </header>
 
@@ -41,23 +42,20 @@
             <div class="col-4"><div class="stat-card"><span class="d-block fw-bold text-warning" id="groupCount">0</span><small class="text-dim">Groups</small></div></div>
             <div class="col-4"><div class="stat-card text-success"><span class="d-block fw-bold" id="todayColl">₹0</span><small class="text-dim">Today</small></div></div>
         </div>
-        <button class="btn btn-warning w-100 py-3 rounded-4 fw-bold shadow" onclick="openModal('paymentModal')">💳 Record Payment</button>
-        <div id="ledgerData" class="mt-4"></div>
+        
+        <h6 class="text-dim small fw-bold text-uppercase mb-3">All Registered Members</h6>
+        <div id="allMembersList"></div>
     </main>
 
     <section id="groupsTab" class="tab-c">
-        <h5 class="fw-bold mb-3">Active Chit Groups</h5>
+        <h5 class="fw-bold mb-3">Trip Library</h5>
         <div id="groupListArea"></div>
     </section>
 
     <section id="backupTab" class="tab-c">
         <div class="stat-card p-4">
             <h6 class="mb-3">System Utilities</h6>
-            <button class="btn btn-outline-warning w-100 mb-2" onclick="exportFullBackup()">💾 Download JSON</button>
-            <button class="btn btn-outline-success w-100 mb-4" onclick="exportToExcel()">📊 Export Excel</button>
-            <hr class="border-secondary">
-            <input type="file" id="restoreFile" class="form-control bg-dark text-white border-secondary mb-2">
-            <button class="btn btn-danger w-100" onclick="confirmRestore()">🔄 Restore Data</button>
+            <button class="btn btn-outline-warning w-100" onclick="alert('Exporting...')">💾 Full System Backup</button>
         </div>
     </section>
 </div>
@@ -70,116 +68,173 @@
 
 <div id="memberModal" class="modal-overlay">
     <div class="m-content">
-        <h5 class="mb-3 fw-bold">Add New Member</h5>
-        <input type="text" id="mName" class="f-inp" placeholder="Full Name">
+        <h5 class="mb-3 fw-bold text-warning" id="memModalTitle">👤 Add Member</h5>
+        <input type="hidden" id="editMemId">
+        <input type="text" id="mName" class="f-inp" placeholder="Member Name">
         <input type="tel" id="mPhone" class="f-inp" placeholder="Phone Number">
         <label class="small text-dim mb-1">Assign to Groups</label>
         <div id="memberGroupSelect" class="group-checkbox-area"></div>
-        <button class="btn btn-warning w-100 py-2 fw-bold" onclick="saveMember()">Create Member</button>
+        <button class="btn btn-warning w-100 py-2 fw-bold" onclick="saveMember()">Confirm Changes</button>
         <button class="btn btn-link w-100 text-white mt-1" onclick="closeModal('memberModal')">Cancel</button>
     </div>
 </div>
 
 <div id="groupModal" class="modal-overlay">
     <div class="m-content">
-        <h5 class="mb-3 fw-bold">Create Group</h5>
+        <h5 class="mb-3 fw-bold text-success" id="grpModalTitle">🏦 Create Group</h5>
+        <input type="hidden" id="editGrpId">
         <input type="text" id="gName" class="f-inp" placeholder="Group Name">
         <input type="number" id="gAmount" class="f-inp" placeholder="Chit Amount ₹">
         <input type="number" id="gDuration" class="f-inp" placeholder="Duration (Months)">
         <input type="date" id="gStart" class="f-inp">
-        <button class="btn btn-success w-100 py-2 fw-bold" onclick="saveGroup()">Create Group</button>
+        <button class="btn btn-success w-100 py-2 fw-bold" onclick="saveGroup()">Save Group</button>
         <button class="btn btn-link w-100 text-white mt-1" onclick="closeModal('groupModal')">Cancel</button>
     </div>
 </div>
 
 <script>
-    // 1. CONFIG
     const firebaseConfig = { apiKey: "AIzaSyCqb7gAbpa3UabPU3g_YhNITuPWtWPY4KU", authDomain: "ak-events-2016.firebaseapp.com", projectId: "ak-events-2016" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    let _dbCache = {};
 
-    const fmtAmt = v => '₹' + (parseFloat(v)||0).toLocaleString('en-IN');
+    let _members = [], _groups = [];
 
-    // 2. CORE HELPERS
-    async function getCollection(col) {
-        const s = await db.collection(col).get();
-        _dbCache[col] = s.docs.map(d=>({id:d.id, ...d.data()}));
-        return _dbCache[col];
+    // --- MODAL TRIGGERS ---
+    function openMemberModal(id = null) {
+        document.getElementById('memberModal').style.display = 'block';
+        populateMemberGroupList();
+        if(id) {
+            const m = _members.find(x => x.id === id);
+            document.getElementById('memModalTitle').innerText = "✏️ Edit Member";
+            document.getElementById('editMemId').value = id;
+            document.getElementById('mName').value = m.name;
+            document.getElementById('mPhone').value = m.phone;
+            setTimeout(() => {
+                (m.groupIds || []).forEach(gid => { if(document.getElementById('cb_'+gid)) document.getElementById('cb_'+gid).checked = true; });
+            }, 300);
+        } else {
+            document.getElementById('memModalTitle').innerText = "👤 Add Member";
+            document.getElementById('editMemId').value = "";
+            document.getElementById('mName').value = "";
+            document.getElementById('mPhone').value = "";
+        }
     }
 
-    function openModal(id) { 
-        document.getElementById(id).style.display = 'block'; 
-        if(id === 'memberModal') populateMemberGroupList();
+    function openGroupModal(id = null) {
+        document.getElementById('groupModal').style.display = 'block';
+        if(id) {
+            const g = _groups.find(x => x.id === id);
+            document.getElementById('grpModalTitle').innerText = "✏️ Edit Group";
+            document.getElementById('editGrpId').value = id;
+            document.getElementById('gName').value = g.name;
+            document.getElementById('gAmount').value = g.amount;
+            document.getElementById('gDuration').value = g.duration;
+            document.getElementById('gStart').value = g.startDate;
+        } else {
+            document.getElementById('grpModalTitle').innerText = "🏦 Create Group";
+            document.getElementById('editGrpId').value = "";
+            document.getElementById('gName').value = "";
+            document.getElementById('gAmount').value = "";
+            document.getElementById('gDuration').value = "";
+            document.getElementById('gStart').value = "";
+        }
     }
+
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
-    function switchTab(t) {
-        document.querySelectorAll('.tab-c').forEach(c => c.classList.remove('active'));
-        document.querySelectorAll('.n-item').forEach(i => i.classList.remove('active'));
-        document.getElementById(t + 'Tab').classList.add('active');
-        document.getElementById('nav' + t.charAt(0).toUpperCase() + t.slice(1)).classList.add('active');
-        if(t === 'groups') renderGroupsTab();
-        if(t === 'home') updateUI();
+    // --- LOGIC ---
+    async function saveMember() {
+        const id = document.getElementById('editMemId').value;
+        const data = {
+            name: document.getElementById('mName').value,
+            phone: document.getElementById('mPhone').value,
+            groupIds: Array.from(document.querySelectorAll('.group-cb:checked')).map(cb => cb.value)
+        };
+        if(id) await db.collection('members').doc(id).update(data);
+        else await db.collection('members').add(data);
+        closeModal('memberModal');
+        updateUI();
     }
 
-    // 3. LOGIC BLOCKS
     async function saveGroup() {
+        const id = document.getElementById('editGrpId').value;
         const data = {
             name: document.getElementById('gName').value,
             amount: parseFloat(document.getElementById('gAmount').value),
             duration: parseInt(document.getElementById('gDuration').value),
             startDate: document.getElementById('gStart').value
         };
-        await db.collection('groups').add(data);
+        if(id) await db.collection('groups').doc(id).update(data);
+        else await db.collection('groups').add(data);
         closeModal('groupModal');
         updateUI();
     }
 
-    async function saveMember() {
-        const selectedGroups = Array.from(document.querySelectorAll('.group-cb:checked')).map(cb => cb.value);
-        const data = {
-            name: document.getElementById('mName').value,
-            phone: document.getElementById('mPhone').value,
-            groupIds: selectedGroups
-        };
-        await db.collection('members').add(data);
-        closeModal('memberModal');
-        updateUI();
-    }
-
-    async function populateMemberGroupList() {
-        const groups = await getCollection('groups');
-        document.getElementById('memberGroupSelect').innerHTML = groups.map(g => `
-            <div class="form-check">
-                <input class="form-check-input group-cb" type="checkbox" value="${g.id}" id="cb_${g.id}">
-                <label class="form-check-label small" for="cb_${g.id}">${g.name}</label>
-            </div>
-        `).join('');
-    }
-
-    async function renderGroupsTab() {
-        const [groups, members] = await Promise.all([getCollection('groups'), getCollection('members')]);
-        document.getElementById('groupListArea').innerHTML = groups.map(g => {
-            const groupMembers = members.filter(m => m.groupIds && m.groupIds.includes(g.id));
-            return `
-            <div class="sap-card mb-3">
-                <div class="d-flex justify-content-between">
-                    <b class="text-warning">📂 ${g.name}</b>
-                    <span class="badge bg-primary">${groupMembers.length} Members</span>
-                </div>
-                <small class="text-dim d-block mb-2">${g.duration} Mo · ${fmtAmt(g.amount)}</small>
-                <div class="border-top border-secondary pt-2">
-                    ${groupMembers.map(m => `<div class="small py-1">👤 ${m.name} <span class="float-end text-dim">${m.phone}</span></div>`).join('')}
-                </div>
-            </div>`;
-        }).join('');
+    async function deleteItem(col, id, name) {
+        if(confirm(`Are you sure you want to delete "${name}"?`)) {
+            await db.collection(col).doc(id).delete();
+            updateUI();
+        }
     }
 
     async function updateUI() {
-        const [m, g, p] = await Promise.all([getCollection('members'), getCollection('groups'), getCollection('payments')]);
-        document.getElementById('memberCount').innerText = m.length;
-        document.getElementById('groupCount').innerText = g.length;
+        const mSnap = await db.collection('members').get();
+        const gSnap = await db.collection('groups').get();
+        _members = mSnap.docs.map(d => ({id:d.id, ...d.data()}));
+        _groups = gSnap.docs.map(d => ({id:d.id, ...d.data()}));
+
+        document.getElementById('memberCount').innerText = _members.length;
+        document.getElementById('groupCount').innerText = _groups.length;
+
+        renderHomeList();
+        if(document.getElementById('groupsTab').classList.contains('active')) renderGroupsTab();
+    }
+
+    function renderHomeList() {
+        document.getElementById('allMembersList').innerHTML = _members.map(m => `
+            <div class="sap-card" style="border-left-color: #f39c12;">
+                <div style="flex:1">
+                    <b class="d-block">${m.name}</b>
+                    <small class="text-dim">${m.phone}</small>
+                </div>
+                <div class="d-flex gap-3">
+                    <span class="action-btn" onclick="openMemberModal('${m.id}')">✏️</span>
+                    <span class="action-btn text-danger" onclick="deleteItem('members','${m.id}','${m.name}')">🗑️</span>
+                </div>
+            </div>`).join('') || '<div class="text-center text-dim mt-4">No members found.</div>';
+    }
+
+    function renderGroupsTab() {
+        document.getElementById('groupListArea').innerHTML = _groups.map(g => `
+            <div class="sap-card mb-3" style="border-left-color: #10b981;">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <b class="text-success fs-5">${g.name}</b>
+                        <div class="small text-dim">${g.duration} Mo · ₹${(g.amount || 0).toLocaleString()}</div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-light border-secondary" onclick="openGroupModal('${g.id}')">Edit</button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteItem('groups','${g.id}','${g.name}')">Delete</button>
+                    </div>
+                </div>
+            </div>`).join('') || '<div class="text-center text-dim mt-5">No groups yet.</div>';
+    }
+
+    async function populateMemberGroupList() {
+        const container = document.getElementById('memberGroupSelect');
+        container.innerHTML = _groups.map(g => `
+            <div class="d-flex align-items-center mb-2 px-2">
+                <input class="form-check-input group-cb me-2" type="checkbox" value="${g.id}" id="cb_${g.id}">
+                <label class="small" for="cb_${g.id}">${g.name}</label>
+            </div>`).join('');
+    }
+
+    function switchTab(t) {
+        document.querySelectorAll('.tab-c').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.n-item').forEach(i => i.classList.remove('active'));
+        document.getElementById(t + 'Tab').classList.add('active');
+        document.getElementById('nav' + t.charAt(0).toUpperCase() + t.slice(1)).classList.add('active');
+        updateUI();
     }
 
     document.addEventListener('DOMContentLoaded', updateUI);
