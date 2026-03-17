@@ -3,312 +3,153 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AK Chit Funds - Admin Portal</title>
+    <title>AK Chit Funds - Admin Portal v2.5</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
     <style>
-        /* --- CORE STYLES (MATCHING IMAGES) --- */
-        :root { --bg-dark:#0a0e1a; --card-bg:#141b2d; --input-bg:#1c253b; --accent-gold:linear-gradient(90deg,#ff9800,#f57c00); --text-dim:#8e9aaf; --border:#252f48; --btn-yellow:#f39c12; --btn-dark:#111; --btn-print:#ff851b;}
-        body { background-color:var(--bg-dark); color:white; font-family:'Segoe UI',sans-serif; padding-bottom:100px; }
-        .app-header { display:flex; justify-content:space-between; align-items:center; padding:15px 20px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--bg-dark); z-index:1000; }
-        .stat-card { background:var(--card-bg); border:1px solid var(--border); border-radius:15px; padding:20px; text-align:center; }
-        .stat-card .stat-num { font-size:2.5rem; font-weight:bold; line-height:1; color:#fff; }
-        .stat-card .text-dim { color:var(--text-dim); text-transform:uppercase; font-size:0.8rem; letter-spacing:1px; }
-
-        /* Buttons & Inputs (matching image_0.png) */
-        .btn-record-payment { background:var(--btn-yellow); color:#000; font-weight:bold; border:none; padding:18px; border-radius:15px; width:calc(100% - 60px); }
-        .form-input-main { background:var(--card-bg); border:1px solid var(--border); color:white; padding:15px; border-radius:15px; width:100%; }
-        .action-button-group { border:1px solid; padding:15px; text-align:center; cursor:pointer; font-weight:bold; border-radius:10px;}
-        .create-member-btn { border-color:var(--btn-yellow); color:var(--btn-yellow); }
-        .new-group-btn { border-color:#2ecc71; color:#2ecc71; }
-        
-        /* Modals */
-        .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:2000; padding:20px; overflow-y:auto;}
-        .modal-content-custom { background:var(--card-bg); border-radius:20px; padding:25px; max-width:500px; margin:30px auto; border:1px solid var(--border); }
-        .f-inp { background:var(--input-bg); border:1px solid var(--border); color:white; padding:12px; border-radius:10px; width:100%; margin-bottom:10px; }
-        .suggestions-list { position:absolute; width:100%; background:var(--input-bg); border:1px solid var(--border); z-index:3000; max-height:200px; overflow-y:auto; display:none; border-radius:0 0 10px 10px;}
-        .wa-tag { font-size:0.7rem; background:rgba(37,211,102,0.1); border:1px solid rgba(37,211,102,0.3); color:#25D366; border-radius:5px; padding:3px 8px; font-weight:700; cursor:default;}
-        
-        /* Nav & Structure */
-        .tab-content { display:none; } .tab-content.active { display:block; }
+        :root { --bg-dark:#0a0e1a; --card-bg:#141b2d; --input-bg:#1c253b; --accent-gold:#f39c12; --border:#252f48; --text-dim:#8e9aaf; }
+        body { background-color:var(--bg-dark); color:white; font-family:'Segoe UI',sans-serif; padding-bottom:100px; margin:0; }
+        .stat-card { background:var(--card-bg); border:1px solid var(--border); border-radius:15px; padding:15px; text-align:center; }
+        .btn-record { background:var(--accent-gold); color:#000; font-weight:bold; border:none; padding:15px; border-radius:15px; width:100%; font-size:1.1rem; }
+        .search-box { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:12px; width:100%; color:white; outline:none; }
+        .suggestions-list { position:absolute; width:100%; background:var(--input-bg); border:1px solid var(--border); z-index:3000; max-height:200px; overflow-y:auto; border-radius:0 0 12px 12px; }
+        .suggestion-item { padding:12px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.05); }
+        .suggestion-item:hover { background:#252f48; color:var(--accent-gold); }
+        .member-card { background:var(--card-bg); border:1px solid var(--border); border-radius:18px; padding:20px; margin-bottom:15px; }
+        .avatar-circle { width:45px; height:45px; background:rgba(243,156,18,0.15); border:1px solid var(--accent-gold); color:var(--accent-gold); border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:1.2rem; }
+        .btn-print { background:#ff851b; color:black; font-weight:bold; border-radius:8px; padding:5px 15px; border:none; }
         .nav-bar { position:fixed; bottom:0; width:100%; background:#070b14; display:flex; justify-content:space-around; padding:15px 0; border-top:1px solid var(--border); z-index:1000;}
-        .nav-item { cursor:pointer; text-align:center; font-size:0.7rem; color:var(--text-dim);}
-        .nav-item.active { color:#f39c12;}
-        .refresh-icon { width:45px; height:45px; background:var(--card-bg); color:var(--text-dim); border:1px solid var(--border); border-radius:12px; display:flex; align-items:center; justify-content:center; cursor:pointer;}
-        #printOverlay { position:fixed; inset:0; background:white; z-index:99999; overflow-y:auto; padding:30px; display:none; color:#000; }
+        .nav-item { cursor:pointer; text-align:center; font-size:0.7rem; color:var(--text-dim); text-decoration:none; }
+        .nav-item.active { color:var(--accent-gold); }
+        .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:2000; padding:20px; }
+        .m-content { background:var(--card-bg); border-radius:25px; padding:25px; max-width:450px; margin:auto; border:1px solid var(--border); }
+        .tab-content { display:none; } .tab-content.active { display:block; }
     </style>
 </head>
 <body>
 
-<div id="printOverlay"></div>
-
-<div class="container py-2">
-    
-    <header class="d-flex justify-content-between align-items-center mb-4 mt-2">
-        <div class="d-flex gap-2">
-            <button class="btn btn-warning btn-sm fw-bold rounded-pill text-black px-3" style="font-size:0.75rem;">ADMIN</button>
-            <button class="btn btn-dark btn-sm text-warning rounded-pill px-3 border border-secondary" style="font-size:0.75rem;" onclick="switchTab('requests')">🔒 Requests</button>
-        </div>
-        <button onclick="handleLogout()" class="btn btn-sm btn-outline-danger px-3 rounded-pill" style="font-size:0.75rem;">Power Logout</button>
-    </header>
-
-    <main id="homeTab" class="tab-content active">
-        <div class="row g-2 mb-3">
-            <div class="col-4"><div class="stat-card"><span class="stat-num d-block" id="countMembers">--</span><small class="text-dim">Members</small></div></div>
-            <div class="col-4"><div class="stat-card"><span class="stat-num d-block" id="countGroups">--</span><small class="text-dim">Groups</small></div></div>
-            <div class="col-4"><div class="stat-card"><span class="stat-num d-block" style="color:#2ecc71" id="sumToday">₹0</span><small class="text-dim">Today</small></div></div>
+<div class="container py-3">
+    <div id="homeTab" class="tab-content active">
+        <div class="row g-2 mb-4 text-center">
+            <div class="col-4"><div class="stat-card"><b class="fs-3 d-block" id="countM">0</b><small class="text-dim">Members</small></div></div>
+            <div class="col-4"><div class="stat-card"><b class="fs-3 d-block" id="countG">0</b><small class="text-dim">Groups</small></div></div>
+            <div class="col-4"><div class="stat-card"><b class="fs-3 d-block text-success" id="sumT">₹0</b><small class="text-dim">Today</small></div></div>
         </div>
 
-        <div class="d-flex align-items-center gap-2 mb-3">
-            <button class="btn-record-payment" onclick="openPaymentModal()">💳 Record Payment</button>
-            <div class="refresh-icon" onclick="initializeApp()">🔄</div>
-        </div>
+        <button class="btn-record mb-4" onclick="openModal('payModal')">💳 Record Payment</button>
 
-        <div class="d-flex align-items-center gap-2 mb-3 position-relative">
-            <input type="text" id="memberSearch" class="form-input-main mb-0" placeholder="🔍 Search Member for Summary / PDF..." oninput="handleSearch(this.value)">
-            <div class="refresh-icon" onclick="initializeApp()">🔄</div>
-            <div id="searchSuggestions" class="suggestions-list"></div>
+        <div class="position-relative mb-4">
+            <input type="text" id="mSearch" class="search-box" placeholder="🔍 Search Member for Summary / PDF..." oninput="handleSearch(this.value)">
+            <div id="mSuggestions" class="suggestions-list" style="display:none;"></div>
         </div>
 
         <div class="row g-2 mb-4">
-            <div class="col-6"><div class="action-button-group create-member-btn" onclick="openMemberModal()">👤 Create Member</div></div>
-            <div class="col-6"><div class="action-button-group new-group-btn" onclick="openGroupModal()">🏦 New Group</div></div>
+            <div class="col-6"><button class="btn btn-outline-warning w-100 py-3 fw-bold" onclick="openModal('memModal')">👤 Create Member</button></div>
+            <div class="col-6"><button class="btn btn-outline-success w-100 py-3 fw-bold" onclick="openModal('grpModal')">🏦 New Group</button></div>
         </div>
-        
-        <div id="ledgerData"></div>
-    </main>
 
-    <section id="requestsTab" class="tab-content">
-        <h5 class="text-warning p-3">Access Requests</h5>
-        <div id="requestList" class="p-3"></div>
-    </section>
-
-    <section id="remindTab" class="tab-content">
-        <div class="p-3">
-            <h5 class="text-warning mb-3">📲 WhatsApp Reminders</h5>
-            <div class="row g-2 mb-3">
-                <div class="col-6"><select id="waGroupFilter" class="f-inp" onchange="renderReminders()"><option value="">All Groups</option></select></div>
-                <div class="col-6"><select id="waStatusFilter" class="f-inp" onchange="renderReminders()"><option value="due">Due This Month</option><option value="all">All Status</option></select></div>
-            </div>
-            <textarea id="waTemplate" rows="5" class="f-inp mb-2" placeholder="Message template...">Hi {name} 👋, this is a friendly reminder that your chit payment of *{amount}* for *{group}* is due on *{duedate}*.</textarea>
-            <div class="d-flex flex-wrap gap-1 mb-3">
-                <span class="wa-tag">{name}</span><span class="wa-tag">{amount}</span><span class="wa-tag">{group}</span><span class="wa-tag">{duedate}</span>
-            </div>
-            <button class="btn btn-success w-100 py-2 mb-3" onclick="sendSelectedWA()">📲 Send to Selected</button>
-            <div id="reminderList"></div>
-        </div>
-    </section>
-
-    <section id="backupTab" class="tab-content">
-        <div class="p-4 text-center">
-            <button class="btn btn-outline-warning w-100 mb-3 py-3" onclick="exportDataToJSON()">💾 Download JSON Backup</button>
-            <div class="border border-secondary rounded p-3 bg-dark">
-                <input type="file" id="restoreFile" class="form-control bg-dark text-white border-secondary mb-2">
-                <button class="btn btn-danger w-100" onclick="confirmRestore()">🔄 Restore Data</button>
-            </div>
-        </div>
-    </section>
+        <div id="ledgerArea"></div>
+    </div>
 </div>
 
 <nav class="nav-bar">
-    <div class="nav-item active" onclick="switchTab('home')" id="navHome">🏠<br>Home</div>
-    <div class="nav-item" onclick="switchTab('remind')" id="navRemind">📲<br>Remind</div>
-    <div class="nav-item" onclick="switchTab('backup')" id="navBackup">💾<br>Backup</div>
+    <div class="nav-item active" onclick="location.reload()">🏠<br>Home</div>
+    <div class="nav-item">📁<br>Groups</div>
+    <div class="nav-item">📲<br>Remind</div>
+    <div class="nav-item">💾<br>Backup</div>
 </nav>
 
-<div id="paymentModal" class="modal-overlay">
-    <div class="modal-content-custom">
-        <h5 class="text-warning mb-3">Sync Payment Entry</h5>
-        <input type="date" id="pDate" class="f-inp">
-        <select id="pMember" class="f-inp" onchange="linkGroupForPayment()"><option value="">Select Member</option></select>
-        <select id="pGroup" class="f-inp"><option value="">Select Group</option></select>
-        <div class="row g-2">
-            <div class="col-6"><input type="number" id="pChitAmount" class="f-inp" placeholder="Chit Amount"></div>
-            <div class="col-6"><input type="number" id="pAmountPaid" class="f-inp" placeholder="Amount Paid"></div>
-        </div>
-        <input type="text" id="pNotes" class="f-inp" placeholder="Notes (optional)">
-        <button class="btn btn-warning w-100 py-3 fw-bold rounded-3 mt-2" onclick="savePayment()">Sync Payment</button>
-        <button class="btn btn-link w-100 text-white mt-2" onclick="closeModal('paymentModal')">Cancel</button>
-    </div>
-</div>
+<div id="payModal" class="modal-overlay"><div class="m-content">
+    <h5 class="text-warning mb-3">Record Payment</h5>
+    <select id="pM" class="form-control mb-2 bg-dark text-white border-secondary"></select>
+    <input type="number" id="pA" class="form-control mb-2 bg-dark text-white border-secondary" placeholder="Amount">
+    <button class="btn btn-warning w-100" onclick="savePayment()">Sync Payment</button>
+    <button class="btn btn-link w-100 text-white" onclick="closeModal('payModal')">Cancel</button>
+</div></div>
 
-<div id="memberModal" class="modal-overlay">
-    <div class="modal-content-custom">
-        <h5 class="text-warning mb-3">Create New Member</h5>
-        <input type="text" id="mName" class="f-inp" placeholder="Full Name">
-        <input type="tel" id="mPhone" class="f-inp" placeholder="10-digit Phone" maxlength="10">
-        <button class="btn btn-warning w-100 py-2" onclick="saveMember()">Create</button>
-        <button class="btn btn-link w-100 text-white" onclick="closeModal('memberModal')">Cancel</button>
-    </div>
-</div>
-
-<div id="groupModal" class="modal-overlay">
-    <div class="modal-content-custom">
-        <h5 class="text-warning mb-3">Create New Chit Group</h5>
-        <input type="text" id="gName" class="f-inp" placeholder="Group Name (e.g., Group-A)">
-        <div class="row g-2">
-            <div class="col-6"><input type="number" id="gValue" class="f-inp" placeholder="Total Value"></div>
-            <div class="col-6"><input type="number" id="gMonths" class="f-inp" placeholder="Total Months"></div>
-        </div>
-        <div class="row g-2">
-            <div class="col-6"><input type="date" id="gStart" class="f-inp" placeholder="Start Date"></div>
-            <div class="col-6"><input type="number" id="gDueDay" class="f-inp" placeholder="Due Day (1-31)" min="1" max="31"></div>
-        </div>
-        <button class="btn btn-warning w-100 py-2" onclick="saveGroup()">Create</button>
-        <button class="btn btn-link w-100 text-white" onclick="closeModal('groupModal')">Cancel</button>
-    </div>
-</div>
+<div id="memModal" class="modal-overlay"><div class="m-content">
+    <h5 class="text-warning mb-3">Add Member</h5>
+    <input type="text" id="mN" class="form-control mb-2 bg-dark text-white border-secondary" placeholder="Name">
+    <input type="tel" id="mP" class="form-control mb-2 bg-dark text-white border-secondary" placeholder="Phone">
+    <button class="btn btn-warning w-100" onclick="saveMember()">Save</button>
+    <button class="btn btn-link w-100 text-white" onclick="closeModal('memModal')">Cancel</button>
+</div></div>
 
 <script>
-// --- [STEP 1: CONFIG] --- Sync with image_1.png
-const firebaseConfig = {
-    apiKey: "AIzaSyCqb7gAbpa3UabPU3g_YhNITuPWtWPY4KU",
-    authDomain: "ak-events-2016.firebaseapp.com",
-    projectId: "ak-events-2016",
-    appId: "1:78066764444:web:5bb9e0d48c128a8632fb59"
-};
+const firebaseConfig = { apiKey: "AIzaSyCqb7gAbpa3UabPU3g_YhNITuPWtWPY4KU", authDomain: "ak-events-2016.firebaseapp.com", projectId: "ak-events-2016" };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+let _db = { members: [], groups: [], payments: [] };
 
-// --- [STEP 2: CACHE & STATE] ---
-let _cache = { m:[], g:[], p:[] }; // Local cache to avoid multiple reads
+async function init() {
+    const [m, g, p] = await Promise.all([db.collection('members').get(), db.collection('groups').get(), db.collection('payments').get()]);
+    _db.members = m.docs.map(d => ({id: d.id, ...d.data()}));
+    _db.groups = g.docs.map(d => ({id: d.id, ...d.data()}));
+    _db.payments = p.docs.map(d => ({id: d.id, ...d.data()}));
 
-// --- [STEP 3: INITIALIZATION (DATA SURGERY APPLIED)] ---
-async function initializeApp() {
-    // Show Loading state on stats
-    document.getElementById('countMembers').innerText = '...';
+    document.getElementById('countM').innerText = _db.members.length;
+    document.getElementById('countG').innerText = _db.groups.length;
     
-    // Unified Fetch (Gets all data once)
-    const [mSnap, gSnap, pSnap] = await Promise.all([
-        db.collection('members').get(),
-        db.collection('groups').get(),
-        db.collection('payments').orderBy('date','desc').get()
-    ]);
-
-    // Update Cache
-    _cache.m = mSnap.docs.map(d => ({id:d.id, ...d.data()}));
-    _cache.g = gSnap.docs.map(d => ({id:d.id, ...d.data()}));
-    _cache.p = pSnap.docs.map(d => ({id:d.id, ...d.data()}));
-
-    renderDashboard();
+    const pSel = document.getElementById('pM');
+    pSel.innerHTML = _db.members.map(x => `<option value="${x.id}">${x.name}</option>`).join('');
 }
 
-// --- [STEP 4: RENDER DASHBOARD] ---
-function renderDashboard() {
-    document.getElementById('countMembers').innerText = _cache.m.length;
-    document.getElementById('countGroups').innerText = _cache.g.length;
-
-    // Today's Collection
-    const todayStr = new Date().toISOString().split('T')[0];
-    const collToday = _cache.p.filter(p => p.date === todayStr).reduce((sum, p) => sum + p.amountPaid, 0);
-    document.getElementById('sumToday').innerText = formatCurrency(collToday);
-    
-    // Pre-populate drop-downs
-    populateDropdowns();
+function handleSearch(val) {
+    const list = document.getElementById('mSuggestions');
+    if (val.length < 2) { list.style.display = 'none'; return; }
+    const filtered = _db.members.filter(m => m.name.toLowerCase().includes(val.toLowerCase()));
+    list.innerHTML = filtered.map(m => `<div class="suggestion-item" onclick="selectMember('${m.id}', '${m.name}')">${m.name}</div>`).join('');
+    list.style.display = filtered.length ? 'block' : 'none';
 }
 
-// --- [STEP 5: UTIL FUNCTIONS] ---
-function formatCurrency(v) { return '₹' + (parseFloat(v)||0).toLocaleString('en-IN'); }
-function switchTab(t) {
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-    document.getElementById(t+'Tab').classList.add('active');
-    // Map requests tab back to Home nav active state for simplicity
-    const navId = t === 'requests' ? 'navHome' : 'nav'+t.charAt(0).toUpperCase()+t.slice(1);
-    document.getElementById(navId).classList.add('active');
+function selectMember(id, name) {
+    document.getElementById('mSearch').value = name;
+    document.getElementById('mSuggestions').style.display = 'none';
+    viewLedger(id);
 }
+
+function viewLedger(mid) {
+    const member = _db.members.find(x => x.id === mid);
+    const mPays = _db.payments.filter(p => p.memberId === mid);
+    const totalPaid = mPays.reduce((s, p) => s + (p.amountPaid || 0), 0);
+
+    // Rendering exactly like image_3.png
+    document.getElementById('ledgerArea').innerHTML = `
+        <div class="member-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="avatar-circle">${member.name[0]}</div>
+                    <div>
+                        <h5 class="mb-0 fw-bold">${member.name}</h5>
+                        <small class="text-dim">${mPays.length} payments</small>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-secondary">✏️</button>
+                    <button class="btn-print" onclick="window.print()">🖨️ Print</button>
+                </div>
+            </div>
+            
+            <div style="background:rgba(255,255,255,0.03); border-radius:12px; padding:15px;">
+                <div class="d-flex justify-content-between small text-dim mb-1">
+                    <span>PAYMENT HISTORY (${mPays.length} ENTRIES)</span>
+                    <span class="text-success fw-bold">₹${totalPaid.toLocaleString()} paid ▶</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function saveMember() {
+    await db.collection('members').add({ name: document.getElementById('mN').value, phone: document.getElementById('mP').value });
+    closeModal('memModal'); init();
+}
+
 function openModal(id) { document.getElementById(id).style.display = 'block'; }
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-function handleLogout() { localStorage.removeItem('ak_admin'); location.reload(); }
 
-function populateDropdowns() {
-    const pMem = document.getElementById('pMember');
-    const pGrp = document.getElementById('pGroup');
-    pMem.innerHTML = '<option value="">Select Member</option>';
-    pGrp.innerHTML = '<option value="">Select Group</option>';
-    
-    _cache.m.forEach(x => pMem.innerHTML += `<option value="${x.id}">${x.name}</option>`);
-    _cache.g.forEach(x => pGrp.innerHTML += `<option value="${x.id}">${x.name} (${formatCurrency(x.totalValue)})</option>`);
-}
-
-// --- [STEP 6: SEARCH LOGIC] ---
-function handleSearch(val) {
-    const sugg = document.getElementById('searchSuggestions');
-    if(val.length < 2) { sugg.style.display = 'none'; return; }
-    
-    const results = _cache.m.filter(m => m.name.toLowerCase().includes(val.toLowerCase()) || m.phone.includes(val));
-    sugg.innerHTML = results.map(m => `<div class="p-2 border-bottom text-white" style="cursor:pointer;" onclick="viewLedger('${m.id}')">${m.name} (${m.phone})</div>`).join('');
-    sugg.style.display = results.length ? 'block' : 'none';
-}
-
-// --- [STEP 7: MODAL SUBMIT LOGIC] ---
-async function saveMember() {
-    const name = document.getElementById('mName').value;
-    const phone = document.getElementById('mPhone').value;
-    if(!name || phone.length !== 10) return alert('Fill valid name and 10-digit phone');
-    
-    try {
-        await db.collection('members').add({ name, phone, createdAt: new Date() });
-        closeModal('memberModal'); initializeApp();
-    } catch(e) { alert('Error: '+e.message); }
-}
-
-async function saveGroup() {
-    const data = {
-        name: document.getElementById('gName').value,
-        totalValue: parseFloat(document.getElementById('gValue').value),
-        totalMonths: parseInt(document.getElementById('gMonths').value),
-        startDate: document.getElementById('gStart').value,
-        dueDay: parseInt(document.getElementById('gDueDay').value)
-    };
-    if(!data.name || !data.totalValue) return alert('Fill basic group info');
-    
-    try {
-        await db.collection('groups').add({...data, createdAt: new Date()});
-        closeModal('groupModal'); initializeApp();
-    } catch(e) { alert('Error: '+e.message); }
-}
-
-async function savePayment() {
-    const mid = document.getElementById('pMember').value;
-    const gid = document.getElementById('pGroup').value;
-    const chitAmt = parseFloat(document.getElementById('pChitAmount').value);
-    const paidAmt = parseFloat(document.getElementById('pAmountPaid').value);
-    const date = document.getElementById('pDate').value;
-
-    if(!mid || !gid || !chitAmt || !paidAmt || !date) return alert('Fill all required fields');
-
-    try {
-        await db.collection('payments').add({
-            memberId: mid, groupId: gid, chitAmount: chitAmt, amountPaid: paidAmt, 
-            date: date, notes: document.getElementById('pNotes').value, createdAt: new Date()
-        });
-        closeModal('paymentModal'); initializeApp();
-    } catch(e) { alert('Error: '+e.message); }
-}
-
-// Open and Set Date
-function openPaymentModal() {
-    document.getElementById('pDate').value = new Date().toISOString().split('T')[0];
-    openModal('paymentModal');
-}
-
-// Auto-fill chit amount based on group (simple example, expand for specific auctions)
-function linkGroupForPayment() {
-    const gid = document.getElementById('pGroup').value;
-    if(!gid) return;
-    const group = _cache.g.find(x => x.id === gid);
-    if(group) {
-        // Set a default (e.g., full chit value / months) - adjust as needed
-        document.getElementById('pChitAmount').value = group.totalValue / group.totalMonths;
-    }
-}
-
-// Start App
-initializeApp();
+init();
 </script>
 </body>
 </html>
