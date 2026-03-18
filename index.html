@@ -3,44 +3,59 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pay via UPI</title>
+<title>UPI Payment Checkout</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
-body { font-family: 'Segoe UI', sans-serif; background:#f7f9fc; display:flex; justify-content:center; align-items:center; height:100vh; }
-.container { background:#fff; width:360px; padding:20px; border-radius:12px; box-shadow:0 8px 20px rgba(0,0,0,0.1); text-align:center;}
-h2{ margin-bottom:10px; color:#333; }
-p{ color:#555; margin:4px 0; }
-input{ width:100%; padding:12px; margin:6px 0; border-radius:6px; border:1px solid #ccc; font-size:16px; }
-button{ width:100%; padding:14px; margin:8px 0; border:none; border-radius:6px; font-size:16px; font-weight:bold; cursor:pointer; }
-.pay-now{background:#4CAF50; color:white;}
-.whatsapp{background:#25D366; color:white;}
-#qrcode{margin-top:15px;}
-.link{margin-top:10px; font-size:14px; word-break:break-all;}
-.small{ font-size:12px; color:#888; margin-top:6px;}
+  body { font-family: 'Segoe UI', sans-serif; margin:0; background:#f4f6f9; height:100vh; display:flex; justify-content:center; align-items:center; }
+
+  /* Overlay */
+  .overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; }
+
+  /* Modal */
+  .modal { background:#fff; width:320px; border-radius:12px; padding:20px; text-align:center; position:relative; box-shadow:0 10px 25px rgba(0,0,0,0.2); animation:slideIn 0.3s ease-out; }
+
+  @keyframes slideIn { from {transform:translateY(50px); opacity:0;} to {transform:translateY(0); opacity:1;} }
+
+  .modal h2 { margin:10px 0; color:#333; }
+  .modal p { margin:5px 0; color:#555; }
+
+  input { width:100%; padding:10px; margin:6px 0; border-radius:6px; border:1px solid #ccc; font-size:16px; }
+
+  button { width:100%; padding:14px; margin:8px 0; border:none; border-radius:6px; font-weight:bold; cursor:pointer; font-size:16px; }
+  .pay-btn { background:#4CAF50; color:white; }
+  .wa-btn { background:#25D366; color:white; }
+  #qrcode { margin-top:15px; }
+  .small { font-size:12px; color:#888; margin-top:6px; }
+  .close { position:absolute; top:10px; right:12px; font-size:18px; font-weight:bold; cursor:pointer; }
 </style>
 </head>
 <body>
-<div class="container">
-<h2>Pay via UPI</h2>
-<p id="payeeName">Recipient: Your Name</p>
 
-<input type="text" id="name" placeholder="Customer Name">
-<input type="number" id="amount" placeholder="Amount ₹">
-<input type="text" id="note" placeholder="Note">
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <span class="close" onclick="closeModal()">×</span>
+    <h2>Pay via UPI</h2>
+    <p id="payeeName">Recipient: Your Name</p>
 
-<button class="pay-now" id="payButton">Pay Now</button>
-<button class="whatsapp" onclick="sendWA()">Share on WhatsApp</button>
+    <input type="text" id="name" placeholder="Customer Name">
+    <input type="number" id="amount" placeholder="Amount ₹">
+    <input type="text" id="note" placeholder="Note">
 
-<div class="link" id="linkBox"></div>
-<div id="qrcode"></div>
-<p class="small">Scan QR code if your app doesn’t open automatically.</p>
+    <button class="pay-btn" id="payButton">Pay Now</button>
+    <button class="wa-btn" onclick="sendWA()">Share on WhatsApp</button>
+
+    <div id="qrcode"></div>
+    <p class="small">Scan QR code if app doesn't open automatically.</p>
+  </div>
 </div>
 
 <script>
 const UPI_ID = "yourupi@upi"; // 🔴 Replace with your UPI ID
 const PAYEE_NAME = "Your Name";
-
 let upiLink = "";
+
+// Close modal
+function closeModal(){ document.getElementById('overlay').style.display='none'; }
 
 // Read URL parameters
 function getParams() {
@@ -59,29 +74,31 @@ function generate() {
 
   upiLink = `upi://pay?pa=${UPI_ID}&pn=${name}&am=${amount}&cu=INR&tn=${note}`;
 
-  document.getElementById("linkBox").innerHTML = `
-    <a href="${upiLink}" style="color:#4CAF50;font-weight:bold;">Pay ₹${amount} Now</a>
-  `;
-
-  document.getElementById("qrcode").innerHTML = "";
-  new QRCode(document.getElementById("qrcode"), { text: upiLink, width:180, height:180 });
+  // QR Code
+  document.getElementById("qrcode").innerHTML="";
+  new QRCode(document.getElementById("qrcode"), { text:upiLink, width:180, height:180 });
 }
 
-// Pay button click
-document.getElementById("payButton").addEventListener("click", () => {
+// Detect mobile and open UPI app
+document.getElementById("payButton").addEventListener("click", ()=>{
   if(!upiLink) generate();
-  window.location.href = upiLink;
+  // Only open on mobile
+  if(/Android|iPhone|iPad/i.test(navigator.userAgent)){
+    window.location.href = upiLink;
+  }else{
+    alert("Use mobile device to open UPI app or scan QR code.");
+  }
 });
 
 // WhatsApp share
-function sendWA() {
+function sendWA(){
   if(!upiLink) generate();
   const amt = document.getElementById("amount").value;
   const msg = encodeURIComponent(`Hello,\nPlease pay ₹${amt} using this link:\n${upiLink}`);
   window.open(`https://wa.me/?text=${msg}`,"_blank");
 }
 
-// On page load
+// On load
 window.onload = function(){
   getParams();
   if(document.getElementById("amount").value) generate();
