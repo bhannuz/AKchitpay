@@ -1,123 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>UPI Payment Generator</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UPI Payment Generator</title>
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f5f7fa;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-    .container {
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      width: 320px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
+<style>
+  body {
+    font-family: Arial;
+    background: #f4f6f9;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
 
-    h2 {
-      text-align: center;
-    }
+  .box {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    width: 340px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  }
 
-    input {
-      width: 100%;
-      padding: 10px;
-      margin: 8px 0;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-    }
+  h2 {
+    text-align: center;
+  }
 
-    button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 10px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-    }
+  input {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+  }
 
-    .pay {
-      background: #4CAF50;
-      color: white;
-    }
+  button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 8px;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+  }
 
-    .whatsapp {
-      background: #25D366;
-      color: white;
-    }
+  .generate { background: #007bff; color: white; }
+  .pay { background: #28a745; color: white; }
+  .wa { background: #25D366; color: white; }
 
-    .output {
-      margin-top: 10px;
-      word-break: break-all;
-      font-size: 12px;
-    }
-  </style>
+  #qrcode {
+    margin-top: 15px;
+    text-align: center;
+  }
+
+  .link {
+    margin-top: 10px;
+    font-size: 13px;
+    word-break: break-all;
+  }
+</style>
 </head>
+
 <body>
 
-<div class="container">
+<div class="box">
   <h2>UPI Payment</h2>
 
-  <input type="text" id="name" placeholder="Customer Name" />
-  <input type="number" id="amount" placeholder="Amount (₹)" />
-  <input type="text" id="note" placeholder="Note (optional)" />
+  <input type="text" id="name" placeholder="Customer Name">
+  <input type="number" id="amount" placeholder="Amount ₹">
+  <input type="text" id="note" placeholder="Note">
 
-  <button class="pay" onclick="generateLink()">Generate Payment</button>
+  <button class="generate" onclick="generate()">Generate Payment</button>
+  <button class="pay" onclick="payNow()">Pay Now</button>
+  <button class="wa" onclick="sendWA()">Send via WhatsApp</button>
 
-  <button class="whatsapp" onclick="sendWhatsApp()">Send via WhatsApp</button>
-
-  <div class="output" id="output"></div>
+  <div class="link" id="linkBox"></div>
+  <div id="qrcode"></div>
 </div>
 
 <script>
-  const UPI_ID = "yourupi@upi"; // 🔴 Replace with your UPI ID
-  const PAYEE_NAME = "Your Business Name";
+const UPI_ID = "yourupi@upi"; // 🔴 CHANGE THIS
+const PAYEE_NAME = "Your Name";
 
-  let paymentLink = "";
+let upiLink = "";
 
-  function generateLink() {
-    const name = document.getElementById("name").value || PAYEE_NAME;
-    const amount = document.getElementById("amount").value;
-    const note = document.getElementById("note").value || "Payment";
+function generate() {
+  const name = document.getElementById("name").value || PAYEE_NAME;
+  const amount = document.getElementById("amount").value;
+  const note = document.getElementById("note").value || "Payment";
 
-    if (!amount) {
-      alert("Please enter amount");
-      return;
-    }
-
-    const encodedName = encodeURIComponent(name);
-    const encodedNote = encodeURIComponent(note);
-
-    // UPI deep link
-    paymentLink = `upi://pay?pa=${UPI_ID}&pn=${encodedName}&am=${amount}&cu=INR&tn=${encodedNote}`;
-
-    document.getElementById("output").innerHTML =
-      "<strong>UPI Link:</strong><br>" + paymentLink;
+  if (!amount) {
+    alert("Enter amount");
+    return;
   }
 
-  function sendWhatsApp() {
-    if (!paymentLink) {
-      alert("Generate payment link first!");
-      return;
-    }
+  const encName = encodeURIComponent(name);
+  const encNote = encodeURIComponent(note);
 
-    const message = encodeURIComponent(
-      `Hello, please complete your payment using this link:\n${paymentLink}`
-    );
+  upiLink = `upi://pay?pa=${UPI_ID}&pn=${encName}&am=${amount}&cu=INR&tn=${encNote}`;
 
-    const whatsappURL = `https://wa.me/?text=${message}`;
+  // Show clickable link
+  document.getElementById("linkBox").innerHTML = `
+    <a href="${upiLink}">Click to Pay ₹${amount}</a>
+  `;
 
-    window.open(whatsappURL, "_blank");
+  // Generate QR
+  document.getElementById("qrcode").innerHTML = "";
+  new QRCode(document.getElementById("qrcode"), {
+    text: upiLink,
+    width: 180,
+    height: 180
+  });
+}
+
+function payNow() {
+  if (!upiLink) {
+    alert("Generate first");
+    return;
   }
+
+  // Try to open directly (GPay/UPI apps)
+  window.location.href = upiLink;
+}
+
+function sendWA() {
+  if (!upiLink) {
+    alert("Generate first");
+    return;
+  }
+
+  const amt = document.getElementById("amount").value;
+
+  const msg = encodeURIComponent(
+    `Hello,\nPlease pay ₹${amt} using this link:\n${upiLink}`
+  );
+
+  window.open(`https://wa.me/?text=${msg}`, "_blank");
+}
 </script>
 
 </body>
