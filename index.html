@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AK Chit Funds - Admin Portal v3.0</title>
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
 </head>
@@ -13,28 +15,53 @@
 
 <div id="printOverlay"></div>
 
-<div class="container py-3">
+<div class="container py-3" id="mainContent">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <span class="badge rounded-pill bg-warning text-dark px-3 py-2 fw-bold">AK ADMIN</span>
-        <button class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="location.reload()">Logout</button>
+        <div class="d-flex gap-2">
+            <span class="badge rounded-pill bg-warning text-dark px-3 py-2 fw-bold">AK ADMIN</span>
+            <button class="btn btn-sm btn-dark border border-secondary rounded-pill text-warning no-print">🔒 Requests</button>
+        </div>
+        <button class="btn btn-sm btn-outline-danger rounded-pill px-3 no-print" onclick="location.reload()">Logout</button>
     </div>
 
     <div class="row g-2 mb-4 text-center">
-        <div class="col-4"><div class="stat-card"><div class="stat-num" id="stM">0</div><small class="text-dim">Members</small></div></div>
-        <div class="col-4"><div class="stat-card"><div class="stat-num" id="stG">0</div><small class="text-dim">Groups</small></div></div>
-        <div class="col-4"><div class="stat-card"><div class="stat-num text-success">₹-</div><small class="text-dim">Today</small></div></div>
+        <div class="col-4">
+            <div class="stat-card">
+                <div class="stat-num" id="stM">0</div>
+                <small class="text-dim">Members</small>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="stat-card">
+                <div class="stat-num" id="stG">0</div>
+                <small class="text-dim">Groups</small>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="stat-card">
+                <div class="stat-num text-success" id="stT">₹0</div>
+                <small class="text-dim">Today</small>
+            </div>
+        </div>
     </div>
 
-    <button class="btn-record-main mb-4 mx-auto d-block" onclick="openModal('payModal')">💳 Record Payment</button>
+    <div class="d-flex gap-2 mb-4">
+        <button class="btn-record-main" onclick="openModal('payModal')">💳 Record Payment</button>
+        <div class="btn-refresh-sq" onclick="sync()">🔄</div>
+    </div>
 
     <div class="position-relative mb-4">
-        <input type="text" id="mSearch" class="search-box" placeholder="Search Member for Summary..." oninput="handleSearch(this.value, 'mSuggestions', 'mSearch', true)">
+        <input type="text" id="mSearch" class="search-box" placeholder="Search Member for Summary / PDF..." oninput="handleSearch(this.value, 'mSuggestions', 'mSearch', true)">
         <div id="mSuggestions" class="suggestions-list shadow-lg"></div>
     </div>
 
     <div class="row g-2 mb-4">
-        <div class="col-6"><button class="btn btn-outline-warning w-100 py-3" onclick="openModal('memModal')">👤 Member</button></div>
-        <div class="col-6"><button class="btn btn-outline-success w-100 py-3" onclick="openModal('grpModal')">🏦 Group</button></div>
+        <div class="col-6">
+            <button class="btn btn-outline-warning w-100 py-3 fw-bold" style="border-radius:12px;" onclick="openModal('memModal')">👤 Member</button>
+        </div>
+        <div class="col-6">
+            <button class="btn btn-outline-success w-100 py-3 fw-bold" style="border-radius:12px;" onclick="openModal('grpModal')">🏦 Group</button>
+        </div>
     </div>
 
     <div id="ledgerArea"></div>
@@ -42,52 +69,92 @@
 
 <div id="payModal" class="modal-overlay">
     <div class="m-content">
-        <h5>Record Payment</h5>
+        <div class="d-flex justify-content-between mb-3">
+            <h5 class="fw-bold">💳 Record Payment</h5>
+            <button class="btn-close btn-close-white" onclick="closeModal('payModal')"></button>
+        </div>
+        
+        <label class="f-label">PAYMENT DATE</label>
         <input type="date" id="pDate" class="f-inp">
+
+        <label class="f-label">MEMBER</label>
         <div class="position-relative">
-            <input type="text" id="pMSearch" class="f-inp" placeholder="Search Member..." oninput="handleSearch(this.value, 'pSuggestions', 'pMSearch', false)">
+            <input type="text" id="pMSearch" class="f-inp" placeholder="🔍 Search Member..." oninput="handleSearch(this.value, 'pSuggestions', 'pMSearch', false)">
             <div id="pSuggestions" class="suggestions-list"></div>
             <input type="hidden" id="pSelectedMid">
         </div>
-        <select id="pGroup" class="f-inp" onchange="checkChitStatus()"><option value="">Select Member First</option></select>
+
+        <label class="f-label">GROUP / ENROLLMENT</label>
+        <select id="pGroup" class="f-inp" onchange="checkChitStatus()">
+            <option value="">-- Select Member First --</option>
+        </select>
+
         <div class="row g-2">
-            <div class="col-6"><input type="number" id="pChit" class="f-inp" placeholder="Chit Amt"></div>
-            <div class="col-6"><input type="number" id="pPaid" class="f-inp" placeholder="Paid Amt"></div>
+            <div class="col-6">
+                <label class="f-label">FOR MONTH NO.</label>
+                <input type="number" id="pMonthNum" class="f-inp" placeholder="e.g. 5">
+            </div>
+            <div class="col-6">
+                <label class="f-label">CHIT AMOUNT (₹)</label>
+                <input type="number" id="pChit" class="f-inp" placeholder="Total">
+            </div>
         </div>
-        <select id="pMode" class="f-inp"><option>GPay</option><option>Cash</option></select>
-        <select id="pPicked" class="f-inp"><option value="No">No</option><option value="Yes">Yes ✅</option></select>
-        <button class="btn btn-warning w-100 py-3 fw-bold" onclick="savePayment()">Sync Payment</button>
-        <button class="btn btn-link w-100 text-dim" onclick="closeModal('payModal')">Cancel</button>
+
+        <div class="row g-2">
+            <div class="col-6">
+                <label class="f-label">PAID (₹)</label>
+                <input type="number" id="pPaid" class="f-inp" placeholder="Current">
+            </div>
+            <div class="col-6">
+                <label class="f-label">MODE</label>
+                <select id="pMode" class="f-inp">
+                    <option>GPay</option>
+                    <option>PhonePe</option>
+                    <option>Cash</option>
+                </select>
+            </div>
+        </div>
+
+        <label class="f-label">CHIT PICKED?</label>
+        <select id="pPicked" class="f-inp">
+            <option value="No">No</option>
+            <option value="Yes">Yes ✅</option>
+        </select>
+
+        <button class="btn btn-warning w-100 py-3 fw-bold mt-2" style="border-radius:12px;" onclick="savePayment()">✓ Sync Payment</button>
     </div>
 </div>
 
 <div id="memModal" class="modal-overlay">
-    <div class="m-content">
-        <h5>New Member</h5>
+    <div class="m-content text-center">
+        <h5 class="mb-4 fw-bold">👤 Create New Member</h5>
         <input type="text" id="memN" class="f-inp" placeholder="Full Name">
-        <input type="tel" id="memP" class="f-inp" placeholder="Phone">
-        <button class="btn btn-warning w-100" onclick="createMember()">Create</button>
-        <button class="btn btn-link w-100 text-dim" onclick="closeModal('memModal')">Cancel</button>
+        <input type="tel" id="memP" class="f-inp" placeholder="Phone Number">
+        <button class="btn btn-warning w-100 py-2 fw-bold" onclick="createMember()">Create Member</button>
+        <button class="btn btn-link text-dim mt-2" onclick="closeModal('memModal')">Cancel</button>
     </div>
 </div>
 
 <div id="grpModal" class="modal-overlay">
-    <div class="m-content">
-        <h5>New Group</h5>
-        <input type="text" id="grpN" class="f-inp" placeholder="Group Name">
-        <input type="number" id="grpD" class="f-inp" placeholder="Months">
-        <button class="btn btn-success w-100" onclick="createGroup()">Create</button>
-        <button class="btn btn-link w-100 text-dim" onclick="closeModal('grpModal')">Cancel</button>
+    <div class="m-content text-center">
+        <h5 class="mb-4 fw-bold">🏦 New Group</h5>
+        <input type="text" id="grpN" class="f-inp" placeholder="Group Name (e.g. 5L V3)">
+        <input type="number" id="grpD" class="f-inp" placeholder="Duration (Months)">
+        <button class="btn btn-success w-100 py-2 fw-bold" onclick="createGroup()">Create Group</button>
+        <button class="btn btn-link text-dim mt-2" onclick="closeModal('grpModal')">Cancel</button>
     </div>
 </div>
 
-<nav class="nav-bar">
+<nav class="nav-bar no-print">
     <div class="nav-item active">🏠<br>Home</div>
     <div class="nav-item">📁<br>Groups</div>
     <div class="nav-item">📜<br>List</div>
+    <div class="nav-item">📲<br>Remind</div>
+    <div class="nav-item">💾<br>Backup</div>
 </nav>
 
 <script src="app.js"></script>
 <script src="planner.js"></script>
+
 </body>
 </html>
