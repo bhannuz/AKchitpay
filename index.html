@@ -1,30 +1,263 @@
-// --- GROUP & MEMBER MANAGEMENT ---
-async function addGroup(groupData) {
-    try {
-        await db.collection('groups').add({
-            ...groupData,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        alert("Group created successfully!");
-        location.reload(); 
-    } catch (e) { console.error(e); }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AK Chit Funds - Admin Portal v3.7</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    <style>
+        :root { --bg:#0a0e1a; --card:#141b2d; --inp:#1c253b; --gold:#f39c12; --border:#252f48; --text-dim:#8e9aaf; --purple:#818cf8; --green:#2ecc71; }
+        body { background-color:var(--bg); color:white; font-family:'Segoe UI',sans-serif; padding-bottom:120px; margin:0; }
+        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:15px; padding:15px; text-align:center; }
+        .stat-num { font-size:1.8rem; font-weight:bold; }
+        .btn-record-main { background:var(--gold); color:#000; font-weight:800; border:none; padding:18px; border-radius:15px; width:100%; font-size:1.1rem; margin-bottom: 15px;}
+        .search-box { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px; width:100%; color:white; outline:none; }
+        .suggestions-list { position:absolute; width:100%; background:var(--inp); border:1px solid var(--border); z-index:3000; border-radius:0 0 12px 12px; max-height:200px; overflow-y:auto; display:none; }
+        .suggestion-item { padding:12px; cursor:pointer; border-bottom:1px solid var(--border); }
+        .member-card { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:20px; margin-top:20px; }
+        .avatar { width:45px; height:45px; background:rgba(243,156,18,0.1); border:1px solid var(--gold); color:var(--gold); border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:bold; }
+        .table-custom { width:100%; font-size:0.8rem; margin-top:10px; border-collapse: separate; border-spacing: 0 5px; }
+        .table-custom th { color:var(--text-dim); padding:10px; text-transform:uppercase; font-size:0.6rem; }
+        .table-custom td { padding:10px; vertical-align: middle; background: rgba(255,255,255,0.01); }
+        .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:2000; padding:20px; overflow-y:auto; }
+        .m-content { background:var(--card); border-radius:25px; padding:25px; max-width:480px; margin:auto; border: 1px solid var(--border); }
+        .f-inp { background:var(--inp); border:1px solid var(--border); color:white; padding:12px; border-radius:10px; width:100%; margin-bottom:15px; }
+        .f-label { font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px; display: block; }
+        .nav-bar { position:fixed; bottom:0; width:100%; background:#070b14; display:flex; justify-content:space-around; padding:15px 0; border-top:1px solid var(--border); z-index: 1000; }
+        .nav-item { cursor:pointer; text-align:center; font-size:0.7rem; color:var(--text-dim); }
+        .nav-item.active { color:var(--gold); font-weight: bold; }
+        .tab-content { display:none; } .tab-content.active { display:block; }
+    </style>
+</head>
+<body>
+
+<div class="container py-3">
+    <div class="row g-2 mb-4 text-center">
+        <div class="col-4"><div class="stat-card"><div class="stat-num" id="stM">0</div><small class="text-dim">MEMBERS</small></div></div>
+        <div class="col-4"><div class="stat-card"><div class="stat-num" id="stG">0</div><small class="text-dim">GROUPS</small></div></div>
+        <div class="col-4"><div class="stat-card"><div class="stat-num text-success" id="stT">₹0</div><small class="text-dim">TODAY</small></div></div>
+    </div>
+
+    <div id="homeTab" class="tab-content active">
+        <button class="btn-record-main" onclick="openModal('payModal')">💳 Record Payment</button>
+        <div class="row g-2 mb-4">
+            <div class="col-6"><button class="btn btn-outline-warning w-100 py-3 fw-bold" style="border-radius:12px;" onclick="openModal('memModal')">👤 New Member</button></div>
+            <div class="col-6"><button class="btn btn-outline-success w-100 py-3 fw-bold" style="border-radius:12px;" onclick="openModal('grpModal')">🏦 New Group</button></div>
+        </div>
+        <div class="position-relative mb-4">
+            <input type="text" id="mSearch" class="search-box" placeholder="Search Member for Ledger..." oninput="handleSearch(this.value)">
+            <div id="mSuggestions" class="suggestions-list shadow-lg"></div>
+        </div>
+        <div id="ledgerArea"></div>
+    </div>
+
+    <div id="groupsTab" class="tab-content">
+        <div id="groupsArea"></div>
+    </div>
+</div>
+
+<nav class="nav-bar">
+    <div class="nav-item active" onclick="switchTab('home', this)">🏠<br>Home</div>
+    <div class="nav-item" onclick="switchTab('groups', this)">📁<br>Groups</div>
+</nav>
+
+<div id="payModal" class="modal-overlay">
+    <div class="m-content">
+        <h5 class="mb-4 text-warning fw-bold">💳 Record Payment</h5>
+        <label class="f-label">Member</label>
+        <select id="pMember" class="f-inp" onchange="updateGroupDropdown()"></select>
+        <label class="f-label">Group</label>
+        <select id="pGroup" class="f-inp"></select>
+        <div class="row g-2">
+            <div class="col-6"><label class="f-label">Paid Amount</label><input type="number" id="pPaid" class="f-inp" placeholder="₹"></div>
+            <div class="col-6"><label class="f-label">Balance</label><input type="number" id="pBal" class="f-inp" placeholder="₹"></div>
+        </div>
+        <label class="f-label">Mode</label>
+        <select id="pMode" class="f-inp"><option>GPay</option><option>PhonePe</option><option>Cash</option></select>
+        <label class="f-label">Chit Picked?</label>
+        <select id="pPicked" class="f-inp"><option value="No">No</option><option value="Yes">Yes ✅</option></select>
+        <button class="btn btn-warning w-100 py-3 fw-bold mt-2" onclick="savePayment()">✓ Sync Payment</button>
+        <button class="btn btn-link w-100 text-white" onclick="closeModal('payModal')">Cancel</button>
+    </div>
+</div>
+
+<div id="memModal" class="modal-overlay">
+    <div class="m-content">
+        <h5 class="mb-4 fw-bold text-center">👤 Create New Member</h5>
+        <label class="f-label">Full Name</label>
+        <input type="text" id="memN" class="f-inp" placeholder="Name">
+        <label class="f-label">Phone Number</label>
+        <input type="tel" id="memP" class="f-inp" placeholder="Contact">
+        
+        <label class="f-label">Select Group</label>
+        <select id="memG" class="f-inp"></select>
+        
+        <label class="f-label">Quantity (No. of Tickets)</label>
+        <input type="number" id="memQ" class="f-inp" value="1" min="1">
+        
+        <button class="btn btn-warning w-100 py-3 fw-bold" onclick="createMember()">Create & Link Member</button>
+        <button class="btn btn-link w-100 text-dim mt-2" onclick="closeModal('memModal')">Cancel</button>
+    </div>
+</div>
+
+<div id="grpModal" class="modal-overlay">
+    <div class="m-content text-center">
+        <h5 class="mb-4 fw-bold">🏦 New Group</h5>
+        <input type="text" id="grpN" class="f-inp" placeholder="Group Name">
+        <input type="number" id="grpD" class="f-inp" placeholder="Duration (Months)">
+        <button class="btn btn-success w-100 py-2 fw-bold" onclick="createGroup()">Create Group</button>
+        <button class="btn btn-link text-dim mt-2" onclick="closeModal('grpModal')">Cancel</button>
+    </div>
+</div>
+
+<script>
+const firebaseConfig = { apiKey: "AIzaSyCqb7gAbpa3UabPU3g_YhNITuPWtWPY4KU", authDomain: "ak-events-2016.firebaseapp.com", projectId: "ak-events-2016" };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+let _cache = { m: [], g: [], p: [] };
+
+async function sync() {
+    const [m, g, p] = await Promise.all([db.collection('members').get(), db.collection('groups').get(), db.collection('payments').get()]);
+    _cache.m = m.docs.map(d => ({id:d.id, ...d.data()}));
+    _cache.g = g.docs.map(d => ({id:d.id, ...d.data()}));
+    _cache.p = p.docs.map(d => ({id:d.id, ...d.data()}));
+    document.getElementById('stM').innerText = _cache.m.length;
+    document.getElementById('stG').innerText = _cache.g.length;
 }
 
-async function addMember(memberData) {
-    try {
-        await db.collection('members').add(memberData);
-        alert("Member added!");
-    } catch (e) { console.error(e); }
-}
-
-// --- RENDER FUNCTIONS ---
-async function switchTab(tabId) {
-    // Update UI Active States
+function switchTab(id, el) {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    
-    document.getElementById(tabId + 'Tab').classList.add('active');
-    // Logic to load specific tab data
-    if(tabId === 'list') renderMemberList();
-    if(tabId === 'groups') renderGroups();
+    document.getElementById(id + 'Tab').classList.add('active');
+    el.classList.add('active');
+    if(id === 'groups') renderGroups();
 }
+
+function handleSearch(val) {
+    const list = document.getElementById('mSuggestions');
+    if (val.length < 1) { list.style.display = 'none'; return; }
+    const filtered = _cache.m.filter(m => m.name.toLowerCase().includes(val.toLowerCase()));
+    list.innerHTML = filtered.map(m => `<div class="suggestion-item" onclick="selectMember('${m.id}','${m.name}')">${m.name}</div>`).join('');
+    list.style.display = 'block';
+}
+
+function selectMember(id, name) {
+    document.getElementById('mSearch').value = name;
+    document.getElementById('mSuggestions').style.display = 'none';
+    const m = _cache.m.find(x => x.id === id);
+    const mPays = _cache.p.filter(p => p.memberId === id);
+    document.getElementById('ledgerArea').innerHTML = `
+        <div class="member-card">
+            <div class="d-flex align-items-center gap-3">
+                <div class="avatar">${m.name[0]}</div>
+                <h4 class="mb-0 fw-bold">${m.name}</h4>
+            </div>
+            <table class="table-custom mt-3">
+                <thead><tr><th>Date</th><th>Paid</th><th>Bal</th><th>Pick</th></tr></thead>
+                <tbody>${mPays.map(p => `<tr><td>${p.date}</td><td class="text-success">₹${p.amountPaid}</td><td class="text-warning">₹${p.balance}</td><td>${p.chitPicked === 'Yes' ? '✅' : '—'}</td></tr>`).join('')}</tbody>
+            </table>
+        </div>`;
+}
+
+function renderGroups() {
+    const area = document.getElementById('groupsArea');
+    area.innerHTML = _cache.g.map(group => {
+        const membersInGroup = _cache.m.filter(m => m.groupId === group.id || (m.groupIds && m.groupIds.includes(group.id)));
+        const groupTotal = _cache.p.filter(p => p.groupId === group.id).reduce((s, p) => s + (parseFloat(p.amountPaid) || 0), 0);
+        return `
+            <div class="member-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="text-warning fw-bold mb-0">🏦 ${group.name}</h5>
+                    <span class="text-success fw-bold">Total: ₹${groupTotal.toLocaleString()}</span>
+                </div>
+                <table class="table-custom">
+                    <thead><tr><th>Name</th><th>Qty</th><th class="text-end">Action</th></tr></thead>
+                    <tbody>${membersInGroup.map(m => `
+                        <tr>
+                            <td>${m.name}</td>
+                            <td>${m.quantity || 1}</td>
+                            <td class="text-end"><button class="btn btn-sm btn-success" onclick="sendWA('${m.phone}','${m.name}','${group.name}')">📲 Remind</button></td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>
+            </div>`;
+    }).join('');
+}
+
+function sendWA(phone, name, gName) {
+    if(!phone) return alert("No phone!");
+    const msg = `Hello ${name}, reminder for AK Chit Funds (${gName}). Please sync your payment.`;
+    window.open(`https://wa.me/91${phone.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function openModal(id) {
+    if(id === 'payModal') {
+        const mSel = document.getElementById('pMember');
+        mSel.innerHTML = '<option value="">Select Member</option>' + _cache.m.map(x => `<option value="${x.id}">${x.name}</option>`).join('');
+    }
+    if(id === 'memModal') {
+        const gSel = document.getElementById('memG');
+        gSel.innerHTML = '<option value="">Select Group</option>' + _cache.g.map(x => `<option value="${x.id}">${x.name}</option>`).join('');
+    }
+    document.getElementById(id).style.display = 'block';
+}
+
+function updateGroupDropdown() {
+    const mid = document.getElementById('pMember').value;
+    const member = _cache.m.find(x => x.id === mid);
+    const gSel = document.getElementById('pGroup');
+    gSel.innerHTML = (member && (member.groupIds || [member.groupId])) ? (member.groupIds || [member.groupId]).map(gid => {
+        const g = _cache.g.find(x => x.id === gid);
+        return g ? `<option value="${g.id}">${g.name}</option>` : '';
+    }).join('') : '<option value="">No Groups</option>';
+}
+
+async function savePayment() {
+    const data = {
+        memberId: document.getElementById('pMember').value,
+        groupId: document.getElementById('pGroup').value,
+        amountPaid: parseFloat(document.getElementById('pPaid').value) || 0,
+        balance: parseFloat(document.getElementById('pBal').value) || 0,
+        mode: document.getElementById('pMode').value,
+        chitPicked: document.getElementById('pPicked').value,
+        date: new Date().toLocaleDateString('en-GB')
+    };
+    if(!data.memberId) return alert("Select Member");
+    await db.collection('payments').add(data);
+    closeModal('payModal'); sync();
+}
+
+async function createMember() {
+    const name = document.getElementById('memN').value;
+    const phone = document.getElementById('memP').value;
+    const groupId = document.getElementById('memG').value;
+    const quantity = parseInt(document.getElementById('memQ').value) || 1;
+    
+    if(!name || !groupId) return alert("Name and Group are mandatory!");
+    
+    await db.collection('members').add({ 
+        name, 
+        phone, 
+        groupId, // Primary link
+        groupIds: [groupId], // Array for multi-group potential
+        quantity 
+    });
+    
+    closeModal('memModal'); sync();
+}
+
+async function createGroup() {
+    const name = document.getElementById('grpN').value;
+    const duration = document.getElementById('grpD').value;
+    if(!name) return alert("Enter Group Name");
+    await db.collection('groups').add({ name, duration });
+    closeModal('grpModal'); sync();
+}
+
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+sync();
+</script>
+</body>
+</html>
