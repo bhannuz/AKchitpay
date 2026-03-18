@@ -3,64 +3,60 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>UPI Payment Generator</title>
+<title>Pay Now</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <style>
-  body {
-    font-family: Arial;
-    background: #f4f6f9;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-  }
+body {
+  font-family: Arial;
+  background: #f2f5f9;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
 
-  .box {
-    background: white;
-    padding: 20px;
-    border-radius: 12px;
-    width: 340px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-  }
+.box {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  width: 340px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  text-align: center;
+}
 
-  h2 {
-    text-align: center;
-  }
+h2 { margin-bottom: 10px; }
 
-  input {
-    width: 100%;
-    padding: 10px;
-    margin: 8px 0;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-  }
+input {
+  width: 100%;
+  padding: 10px;
+  margin: 6px 0;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
 
-  button {
-    width: 100%;
-    padding: 12px;
-    margin-top: 8px;
-    border: none;
-    border-radius: 6px;
-    font-weight: bold;
-    cursor: pointer;
-  }
+button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+}
 
-  .generate { background: #007bff; color: white; }
-  .pay { background: #28a745; color: white; }
-  .wa { background: #25D366; color: white; }
+.generate { background: #007bff; color: #fff; }
+.pay { background: #28a745; color: #fff; }
+.wa { background: #25D366; color: #fff; }
 
-  #qrcode {
-    margin-top: 15px;
-    text-align: center;
-  }
+#qrcode { margin-top: 15px; }
 
-  .link {
-    margin-top: 10px;
-    font-size: 13px;
-    word-break: break-all;
-  }
+.link {
+  margin-top: 10px;
+  font-size: 13px;
+  word-break: break-all;
+}
 </style>
 </head>
 
@@ -87,6 +83,18 @@ const PAYEE_NAME = "Your Name";
 
 let upiLink = "";
 
+// ✅ Read URL parameters (amount, name)
+function getParams() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("amount")) {
+    document.getElementById("amount").value = params.get("amount");
+  }
+  if (params.get("name")) {
+    document.getElementById("name").value = params.get("name");
+  }
+}
+
+// ✅ Generate UPI link
 function generate() {
   const name = document.getElementById("name").value || PAYEE_NAME;
   const amount = document.getElementById("amount").value;
@@ -102,12 +110,14 @@ function generate() {
 
   upiLink = `upi://pay?pa=${UPI_ID}&pn=${encName}&am=${amount}&cu=INR&tn=${encNote}`;
 
-  // Show clickable link
+  // clickable link
   document.getElementById("linkBox").innerHTML = `
-    <a href="${upiLink}">Click to Pay ₹${amount}</a>
+    <a href="${upiLink}" style="color:green;font-weight:bold;">
+      Pay ₹${amount} Now
+    </a>
   `;
 
-  // Generate QR
+  // QR Code
   document.getElementById("qrcode").innerHTML = "";
   new QRCode(document.getElementById("qrcode"), {
     text: upiLink,
@@ -116,20 +126,18 @@ function generate() {
   });
 }
 
+// ✅ Open payment app
 function payNow() {
   if (!upiLink) {
-    alert("Generate first");
-    return;
+    generate();
   }
-
-  // Try to open directly (GPay/UPI apps)
   window.location.href = upiLink;
 }
 
+// ✅ Send WhatsApp
 function sendWA() {
   if (!upiLink) {
-    alert("Generate first");
-    return;
+    generate();
   }
 
   const amt = document.getElementById("amount").value;
@@ -140,6 +148,16 @@ function sendWA() {
 
   window.open(`https://wa.me/?text=${msg}`, "_blank");
 }
+
+// ✅ Auto-fill from URL on load
+window.onload = function() {
+  getParams();
+
+  // Auto-generate if amount exists
+  if (document.getElementById("amount").value) {
+    generate();
+  }
+};
 </script>
 
 </body>
