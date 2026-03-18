@@ -1,8 +1,17 @@
+// --- HELPERS ---
+const fmtDate = (d) => {
+    if (!d) return '—';
+    const [year, month, day] = d.split('-');
+    return `${day}/${month}/${year}`;
+};
+
+const cleanNum = (n) => parseFloat(n) || 0;
+
 // --- LEDGER RENDERING ---
 function renderLedger(mid) {
     const m = _cache.m.find(x => x.id === mid);
     const mPays = _cache.p.filter(p => p.memberId === mid);
-    const totalPaid = mPays.reduce((s, p) => s + (parseFloat(p.amountPaid) || 0), 0);
+    const totalPaid = mPays.reduce((s, p) => s + cleanNum(p.amountPaid), 0);
 
     document.getElementById('ledgerArea').innerHTML = `
         <div class="member-card">
@@ -19,13 +28,14 @@ function renderLedger(mid) {
             </div>
             <div id="hist" style="display:none; overflow-x:auto;">
                 <table class="table-history">
-                    <thead><tr><th>#</th><th>Date</th><th>Paid</th><th>Bal</th><th>Pick</th></tr></thead>
+                    <thead><tr><th>#</th><th>Month</th><th>Date</th><th>Paid</th><th>Bal</th><th>Pick</th></tr></thead>
                     <tbody>${mPays.map((p, i) => `
                         <tr>
                             <td>${i+1}</td>
-                            <td>${p.date}</td>
-                            <td class="text-success">₹${p.amountPaid}</td>
-                            <td class="text-warning">₹${p.balance}</td>
+                            <td><span class="badge-meta">M-${p.monthPaid || 'N/A'}</span></td>
+                            <td>${fmtDate(p.date)}</td>
+                            <td class="text-success">₹${cleanNum(p.amountPaid)}</td>
+                            <td class="text-warning">₹${cleanNum(p.balance)}</td>
                             <td>${p.chitPicked === 'Yes' ? '✅' : '—'}</td>
                         </tr>`).join('')}
                     </tbody>
@@ -38,8 +48,8 @@ function renderLedger(mid) {
 function printPDF(mid) {
     const m = _cache.m.find(x => x.id === mid);
     const mPays = _cache.p.filter(p => p.memberId === mid);
-    const totalPaid = mPays.reduce((s, p) => s + (parseFloat(p.amountPaid) || 0), 0);
-    const totalBal = mPays.reduce((s, p) => s + (parseFloat(p.balance) || 0), 0);
+    const totalPaid = mPays.reduce((s, p) => s + cleanNum(p.amountPaid), 0);
+    const totalBal = mPays.reduce((s, p) => s + cleanNum(p.balance), 0);
 
     const overlay = document.getElementById('printOverlay');
     overlay.innerHTML = `
@@ -57,27 +67,18 @@ function printPDF(mid) {
                 </div>
             </div>
             <table class="print-table">
-                <thead><tr><th>#</th><th>Date</th><th>Chit Amt</th><th>Paid</th><th>Balance</th><th>Mode</th></tr></thead>
+                <thead><tr><th>#</th><th>Month</th><th>Date</th><th>Chit Amt</th><th>Paid</th><th>Balance</th></tr></thead>
                 <tbody>${mPays.map((p, i) => `
                     <tr>
                         <td>${i+1}</td>
-                        <td>${p.date}</td>
-                        <td>Rs.${p.amountPaid + p.balance}</td>
-                        <td>Rs.${p.amountPaid}</td>
-                        <td>Rs.${p.balance}</td>
-                        <td>${p.mode}</td>
+                        <td>Month ${p.monthPaid || '—'}</td>
+                        <td>${fmtDate(p.date)}</td>
+                        <td>Rs.${cleanNum(p.amountPaid) + cleanNum(p.balance)}</td>
+                        <td>Rs.${cleanNum(p.amountPaid)}</td>
+                        <td>Rs.${cleanNum(p.balance)}</td>
                     </tr>`).join('')}
                 </tbody>
             </table>
         </div>`;
     overlay.style.display = 'block';
-}
-
-function checkChitStatus() {
-    const mid = document.getElementById('pSelectedMid').value;
-    const gid = document.getElementById('pGroup').value;
-    const isPicked = _cache.p.some(p => p.memberId === mid && p.groupId === gid && p.chitPicked === 'Yes');
-    const sel = document.getElementById('pPicked');
-    if (isPicked) { sel.value = "No"; sel.options[1].disabled = true; }
-    else { sel.options[1].disabled = false; }
 }
