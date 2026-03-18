@@ -3,162 +3,132 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pay Now</title>
-
+<title>Pay with UPI</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
 <style>
-body {
-  font-family: Arial;
-  background: #f2f5f9;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-}
+  body {
+    margin:0;
+    font-family: 'Segoe UI', sans-serif;
+    background: #f7f9fc;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
 
-.box {
-  background: #fff;
-  padding: 20px;
-  border-radius: 12px;
-  width: 340px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-  text-align: center;
-}
+  .container {
+    background: #fff;
+    width: 360px;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    text-align: center;
+  }
 
-h2 { margin-bottom: 10px; }
+  h2 { margin-bottom: 10px; color:#333; }
+  p { color: #555; margin:4px 0; }
 
-input {
-  width: 100%;
-  padding: 10px;
-  margin: 6px 0;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-}
+  input {
+    width: 100%;
+    padding: 12px;
+    margin: 6px 0;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+  }
 
-button {
-  width: 100%;
-  padding: 12px;
-  margin-top: 8px;
-  border: none;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-}
+  button {
+    width: 100%;
+    padding: 14px;
+    margin: 8px 0;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+  }
 
-.generate { background: #007bff; color: #fff; }
-.pay { background: #28a745; color: #fff; }
-.wa { background: #25D366; color: #fff; }
-
-#qrcode { margin-top: 15px; }
-
-.link {
-  margin-top: 10px;
-  font-size: 13px;
-  word-break: break-all;
-}
+  .pay-now { background:#4CAF50; color:white; }
+  .whatsapp { background:#25D366; color:white; }
+  #qrcode { margin-top: 15px; }
+  .link { margin-top: 10px; font-size:14px; word-break:break-all; }
+  .small { font-size:12px; color:#888; margin-top:6px; }
 </style>
 </head>
 
 <body>
-
-<div class="box">
-  <h2>UPI Payment</h2>
+<div class="container">
+  <h2>Pay via UPI</h2>
+  <p id="payeeName">Recipient: Your Name</p>
 
   <input type="text" id="name" placeholder="Customer Name">
   <input type="number" id="amount" placeholder="Amount ₹">
   <input type="text" id="note" placeholder="Note">
 
-  <button class="generate" onclick="generate()">Generate Payment</button>
-  <button class="pay" onclick="payNow()">Pay Now</button>
-  <button class="wa" onclick="sendWA()">Send via WhatsApp</button>
+  <button class="pay-now" onclick="payNow()">Pay Now</button>
+  <button class="whatsapp" onclick="sendWA()">Share on WhatsApp</button>
 
   <div class="link" id="linkBox"></div>
   <div id="qrcode"></div>
+  <p class="small">If app doesn't open automatically, click "Pay Now"</p>
 </div>
 
 <script>
-const UPI_ID = "yourupi@upi"; // 🔴 CHANGE THIS
+const UPI_ID = "yourupi@upi"; // 🔴 Replace with your UPI ID
 const PAYEE_NAME = "Your Name";
 
 let upiLink = "";
 
-// ✅ Read URL parameters (amount, name)
+// Read URL parameters to prefill amount and name
 function getParams() {
   const params = new URLSearchParams(window.location.search);
-  if (params.get("amount")) {
-    document.getElementById("amount").value = params.get("amount");
-  }
-  if (params.get("name")) {
-    document.getElementById("name").value = params.get("name");
-  }
+  if (params.get("amount")) document.getElementById("amount").value = params.get("amount");
+  if (params.get("name")) document.getElementById("name").value = params.get("name");
 }
 
-// ✅ Generate UPI link
+// Generate UPI link
 function generate() {
-  const name = document.getElementById("name").value || PAYEE_NAME;
+  const name = encodeURIComponent(document.getElementById("name").value || PAYEE_NAME);
   const amount = document.getElementById("amount").value;
-  const note = document.getElementById("note").value || "Payment";
+  const note = encodeURIComponent(document.getElementById("note").value || "Payment");
 
-  if (!amount) {
-    alert("Enter amount");
-    return;
-  }
+  if (!amount) { alert("Enter amount"); return; }
 
-  const encName = encodeURIComponent(name);
-  const encNote = encodeURIComponent(note);
+  upiLink = `upi://pay?pa=${UPI_ID}&pn=${name}&am=${amount}&cu=INR&tn=${note}`;
 
-  upiLink = `upi://pay?pa=${UPI_ID}&pn=${encName}&am=${amount}&cu=INR&tn=${encNote}`;
-
-  // clickable link
   document.getElementById("linkBox").innerHTML = `
-    <a href="${upiLink}" style="color:green;font-weight:bold;">
-      Pay ₹${amount} Now
-    </a>
+    <a href="${upiLink}" style="color:#4CAF50;font-weight:bold;">Pay ₹${amount} Now</a>
   `;
 
-  // QR Code
+  // Generate QR code
   document.getElementById("qrcode").innerHTML = "";
-  new QRCode(document.getElementById("qrcode"), {
-    text: upiLink,
-    width: 180,
-    height: 180
-  });
+  new QRCode(document.getElementById("qrcode"), { text: upiLink, width: 180, height: 180 });
 }
 
-// ✅ Open payment app
+// Auto open UPI app if amount present
 function payNow() {
-  if (!upiLink) {
-    generate();
-  }
+  if (!upiLink) generate();
   window.location.href = upiLink;
 }
 
-// ✅ Send WhatsApp
+// WhatsApp share
 function sendWA() {
-  if (!upiLink) {
-    generate();
-  }
-
+  if (!upiLink) generate();
   const amt = document.getElementById("amount").value;
-
-  const msg = encodeURIComponent(
-    `Hello,\nPlease pay ₹${amt} using this link:\n${upiLink}`
-  );
-
+  const msg = encodeURIComponent(`Hello,\nPlease pay ₹${amt} using this link:\n${upiLink}`);
   window.open(`https://wa.me/?text=${msg}`, "_blank");
 }
 
-// ✅ Auto-fill from URL on load
+// On page load
 window.onload = function() {
   getParams();
-
-  // Auto-generate if amount exists
-  if (document.getElementById("amount").value) {
+  const amount = document.getElementById("amount").value;
+  if (amount) {
     generate();
+    // Auto open payment after 1 second
+    setTimeout(() => { window.location.href = upiLink; }, 1000);
   }
 };
 </script>
-
 </body>
 </html>
