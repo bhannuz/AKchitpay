@@ -4,7 +4,7 @@
 // Change BUILD_VER on every deploy to bust browser cache.
 // ═══════════════════════════════════════════════════════════
 (function(){
-    var BUILD_VER = '20260320_v6';
+    var BUILD_VER = '20260410_v7';
 
     var scripts = [
         'js/firebase.js',
