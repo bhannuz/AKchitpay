@@ -245,7 +245,7 @@ async function loadMemberLedger(){
                         </div>
                         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
                             <span style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);border-radius:6px;padding:3px 9px;font-size:0.72rem;color:#a5b4fc;">📅 Started: ${fmtDate(grp.startDate||grp.gStart||'')}</span>
-                            ${(()=>{ const comm=mComms.find(c=>c.groupId===grp.id); const commVal=comm?comm.targetMonth:0; const commId=comm?comm.id:''; return '<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(155,89,182,0.15);border:1px solid rgba(155,89,182,0.4);border-radius:6px;padding:2px 4px 2px 8px;font-size:0.72rem;color:#bb86fc;">🎯 Commitment: <input type="number" min="0" max="'+totalMonths+'" value="'+(commVal||'')+'\'" placeholder="Month" data-mid="'+mid+'" data-gid="'+grp.id+'" data-commid="'+commId+'" onchange="updateLedgerCommitment(this)" style="width:46px;background:rgba(155,89,182,0.15);border:1px solid rgba(155,89,182,0.35);color:#bb86fc;border-radius:5px;padding:2px 4px;font-size:0.72rem;font-weight:800;text-align:center;outline:none;"></span>'; })()}
+                            ${(()=>{ const comm=mComms.find(c=>c.groupId===grp.id); if(!comm||!comm.targetMonth) return ''; return '<span style="background:rgba(155,89,182,0.2);border:1px solid rgba(155,89,182,0.45);border-radius:6px;padding:3px 9px;font-size:0.72rem;color:#bb86fc;font-weight:800;">🎯 '+getOrdinal(comm.targetMonth)+' Month</span>'; })()}
                         </div>
                     </div>
                 </div>
@@ -347,35 +347,6 @@ async function loadMemberLedger(){
         document.getElementById('mhBalance').textContent = fmtAmt(totalBal);
     } else {
         document.getElementById('ledgerData').innerHTML = ledgerHtml;
-    }
-}
-
-// Inline commitment edit from ledger
-async function updateLedgerCommitment(input){
-    const mid = input.dataset.mid;
-    const gid = input.dataset.gid;
-    const commId = input.dataset.commid;
-    const val = parseInt(input.value)||0;
-    try {
-        if(val > 0){
-            if(commId){
-                await db.collection('memberCommitments').doc(commId).update({targetMonth: val});
-            } else {
-                const ref = await db.collection('memberCommitments').add({
-                    memberId: mid, groupId: gid, targetMonth: val,
-                    createdAt: new Date().toISOString()
-                });
-                input.dataset.commid = ref.id;
-            }
-        } else if(commId) {
-            await db.collection('memberCommitments').doc(commId).delete();
-            input.dataset.commid = '';
-        }
-        bustCache('memberCommitments');
-        input.style.borderColor = '#34d399';
-        setTimeout(()=>{ input.style.borderColor = 'rgba(155,89,182,0.35)'; }, 1200);
-    } catch(e) {
-        showToast('❌ Failed to save commitment', false);
     }
 }
 
