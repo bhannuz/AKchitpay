@@ -350,7 +350,7 @@ async function renderGroupsTab(){
                 `<td style="color:#34d399;">${fmtAmt(paid)}</td>`,
                 `<td style="color:#f59e0b;">${fmtAmt(bal)}</td>`,
                 `<td style="color:#a5b4fc;font-size:1.05rem;">${monthsCovered}/${totalMonths}</td>`,
-                (()=>{ const mComms=cs.filter(c=>c.memberId===m.id&&c.groupId===g.id); const commCell=mComms.length>0?mComms.map(c=>'<span style="background:rgba(155,89,182,0.2);color:#bb86fc;border:1px solid rgba(155,89,182,0.4);border-radius:5px;padding:2px 7px;font-size:0.68rem;font-weight:800;display:inline-block;margin:1px;">🎯 '+getOrdinal(c.targetMonth)+' Month</span>').join(' '):'<span style="color:var(--text-dim);">—</span>'; return '<td>'+commCell+'</td>'; })(),
+(()=>{ const mComm=cs.find(c=>c.memberId===m.id&&c.groupId===g.id); const commVal=mComm?mComm.targetMonth:0; const commId=mComm?mComm.id:''; return '<td><input type="number" min="0" max="'+totalMonths+'" value="'+(commVal||'')+'" placeholder="—" data-mid="'+m.id+'" data-gid="'+g.id+'" data-commid="'+commId+'" onchange="updateGroupCommitment(this)" style="width:60px;background:rgba(155,89,182,0.1);border:1px solid rgba(155,89,182,0.3);color:#bb86fc;border-radius:7px;padding:4px 6px;font-size:0.78rem;font-weight:800;text-align:center;outline:none;" title="Commitment month for this member"></td>'; })(),
                 `<td>${pickedPay
                     ?`<div><span class="chit-yes-badge">✅ Picked</span><div style="color:#34d399;font-weight:800;font-size:0.92rem;margin-top:3px;">${fmtAmt(pickedAmt)}</div>${pickedBy?`<div style="font-size:0.98rem;color:var(--text-dim);">by ${pickedBy}</div>`:''}</div>`
                     :'<span class="chit-no">—</span>'}</td>`,
@@ -399,6 +399,35 @@ async function renderGroupsTab(){
     }).join('');
 }
 
+
+// Inline commitment edit from groups tab
+async function updateGroupCommitment(input){
+    const mid = input.dataset.mid;
+    const gid = input.dataset.gid;
+    const commId = input.dataset.commid;
+    const val = parseInt(input.value)||0;
+    try {
+        if(val > 0){
+            if(commId){
+                await db.collection('memberCommitments').doc(commId).update({targetMonth: val});
+            } else {
+                const ref = await db.collection('memberCommitments').add({
+                    memberId: mid, groupId: gid, targetMonth: val,
+                    createdAt: new Date().toISOString()
+                });
+                input.dataset.commid = ref.id;
+            }
+        } else if(commId) {
+            await db.collection('memberCommitments').doc(commId).delete();
+            input.dataset.commid = '';
+        }
+        bustCache('memberCommitments');
+        input.style.borderColor = '#34d399';
+        setTimeout(()=>{ input.style.borderColor = 'rgba(155,89,182,0.3)'; }, 1200);
+    } catch(e) {
+        showToast('❌ Failed to save commitment', false);
+    }
+}
 
 function toggleGroupCard(bodyId, header){
     const body=document.getElementById(bodyId);
