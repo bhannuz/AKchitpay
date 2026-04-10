@@ -34,7 +34,7 @@ async function loadMemberLedger(){
     const isMember = CURRENT_USER && CURRENT_USER.role==='member';
     const today = new Date().toISOString().split('T')[0];
 
-    function buildSection(grp, enr, slotPays, slotNum, totalSlots, allDueDates, sectionId){
+    function buildSection(grp, enr, slotPays, slotNum, totalSlots, allDueDates, sectionId, mComms){
         const totalMonths  = parseInt(grp.duration||grp.gDuration)||21;
         
         // Get chit amount from Firebase field: fixedAmt
@@ -243,8 +243,9 @@ async function loadMemberLedger(){
                         <div style="font-size:1rem;font-weight:900;color:#f39c12;margin-bottom:6px;">
                             Group: ${grp.name}${labelBadge}${chitSlotBadge}
                         </div>
-                        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
                             <span style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);border-radius:6px;padding:3px 9px;font-size:0.72rem;color:#a5b4fc;">📅 Started: ${fmtDate(grp.startDate||grp.gStart||'')}</span>
+                            ${(()=>{ const comm=mComms.find(c=>c.groupId===grp.id); const commVal=comm?comm.targetMonth:0; const commId=comm?comm.id:''; return '<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(155,89,182,0.15);border:1px solid rgba(155,89,182,0.4);border-radius:6px;padding:2px 4px 2px 8px;font-size:0.72rem;color:#bb86fc;">🎯 Commitment: <input type="number" min="0" max="'+totalMonths+'" value="'+(commVal||'')+'\'" placeholder="Month" data-mid="'+mid+'" data-gid="'+grp.id+'" data-commid="'+commId+'" onchange="updateLedgerCommitment(this)" style="width:46px;background:rgba(155,89,182,0.15);border:1px solid rgba(155,89,182,0.35);color:#bb86fc;border-radius:5px;padding:2px 4px;font-size:0.72rem;font-weight:800;text-align:center;outline:none;"></span>'; })()}
                         </div>
                     </div>
                 </div>
@@ -318,22 +319,17 @@ async function loadMemberLedger(){
             
             const allDueDates = buildDueDateList(grp);
             const id = `ledger_${idx}_${slotNum}`;
-            slotSections.push(buildSection(grp, enr, slotPays, slotNum, totalSlots, allDueDates, id));
+            slotSections.push(buildSection(grp, enr, slotPays, slotNum, totalSlots, allDueDates, id, mComms));
         }
         
         return slotSections.join('');
     }).join('');
 
-    // Build commitment chip
-    const commitmentChip = mComms.length > 0 
-        ? `<span style="background:rgba(155,89,182,0.2);color:#bb86fc;border:1px solid rgba(155,89,182,0.4);border-radius:5px;padding:2px 8px;font-size:0.75rem;font-weight:800;margin-left:8px;vertical-align:middle;">🎯 ${getOrdinal(mComms[0].targetMonth)} Month Commitment</span>`
-        : '';
-
     const ledgerHtml = `
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-top:6px;">
             <div style="width:46px;height:46px;border-radius:12px;background:rgba(243,156,18,.15);border:2px solid rgba(243,156,18,.4);color:#f39c12;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:900;flex-shrink:0;">${ini(m.name)}</div>
             <div style="flex:1;min-width:0;">
-                <div style="font-size:1rem;font-weight:900;">${m.name}${commitmentChip}</div>
+                <div style="font-size:1rem;font-weight:900;">${m.name}</div>
                 <div style="font-size:0.72rem;color:var(--text-dim);margin-top:1px;">${mPays.length} payment${mPays.length!==1?'s':''} · ${memberGroups.length} group${memberGroups.length!==1?'s':''}</div>
             </div>
             <div style="display:flex;gap:6px;">
@@ -351,6 +347,35 @@ async function loadMemberLedger(){
         document.getElementById('mhBalance').textContent = fmtAmt(totalBal);
     } else {
         document.getElementById('ledgerData').innerHTML = ledgerHtml;
+    }
+}
+
+// Inline commitment edit from ledger
+async function updateLedgerCommitment(input){
+    const mid = input.dataset.mid;
+    const gid = input.dataset.gid;
+    const commId = input.dataset.commid;
+    const val = parseInt(input.value)||0;
+    try {
+        if(val > 0){
+            if(commId){
+                await db.collection('memberCommitments').doc(commId).update({targetMonth: val});
+            } else {
+                const ref = await db.collection('memberCommitments').add({
+                    memberId: mid, groupId: gid, targetMonth: val,
+                    createdAt: new Date().toISOString()
+                });
+                input.dataset.commid = ref.id;
+            }
+        } else if(commId) {
+            await db.collection('memberCommitments').doc(commId).delete();
+            input.dataset.commid = '';
+        }
+        bustCache('memberCommitments');
+        input.style.borderColor = '#34d399';
+        setTimeout(()=>{ input.style.borderColor = 'rgba(155,89,182,0.35)'; }, 1200);
+    } catch(e) {
+        showToast('❌ Failed to save commitment', false);
     }
 }
 
