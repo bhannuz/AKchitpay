@@ -39,17 +39,11 @@ async function openEditMember(mid){
     if(!enrollments || !enrollments.length){
         enrollments = (m.groupIds||[]).map(gid=>({enrollmentId: genEnrollId(), groupId: gid, label:''}));
     }
-    // Load existing commitments to pre-fill the month input
-    const existingComms = await getCollection('memberCommitments');
-    const mComms = existingComms.filter(c=>c.memberId===m.id);
-    enrollments.forEach(e=>{
-        const comm = mComms.find(c=>c.groupId===e.groupId);
-        addEnrollmentRow(e.groupId, e.label, e.enrollmentId, e.qty||1, comm?comm.targetMonth:0);
-    });
+    enrollments.forEach(e=> addEnrollmentRow(e.groupId, e.label, e.enrollmentId, e.qty||1));
     openModal('memberModal');
 }
 
-function addEnrollmentRow(groupId='', label='', enrollmentId='', qty=1, commitment=0){
+function addEnrollmentRow(groupId='', label='', enrollmentId='', qty=1){
     const id = enrollmentId || genEnrollId();
     const opts = _enrollGroupOptions.map(g=>`<option value="${g.id}" ${g.id===groupId?'selected':''}>${g.name}</option>`).join('');
     const row = document.createElement('div');
@@ -67,11 +61,6 @@ function addEnrollmentRow(groupId='', label='', enrollmentId='', qty=1, commitme
         </div>
         <input type="text" class="enr-label form-input" placeholder="Label (e.g. Chit 1)" value="${label}"
             style="flex:2;margin-bottom:0;padding:8px 10px;font-size:0.92rem;" title="Label to distinguish multiple chits in same group">
-        <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px;">
-            <span style="font-size:0.5rem;color:#bb86fc;font-weight:700;text-transform:uppercase;white-space:nowrap;">🎯 Month</span>
-            <input type="number" class="enr-commitment form-input" min="0" max="60" value="${commitment||''}"
-                placeholder="—" style="width:58px;margin-bottom:0;padding:8px 6px;font-size:1rem;text-align:center;font-weight:800;border-color:rgba(155,89,182,0.4);" title="Commitment month (which month this member wants to pick the chit)">
-        </div>
         <button type="button" onclick="this.closest('.enrollment-row').remove()"
             style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:8px;padding:6px 10px;font-size:1.05rem;cursor:pointer;flex-shrink:0;">✕</button>`;
     document.getElementById('enrollmentList').appendChild(row);
@@ -104,25 +93,6 @@ async function saveMember(){
     if(eid) await db.collection('members').doc(eid).update(data);
     else { const ref = await db.collection('members').add(data); memberId = ref.id; }
     bustCache('members');
-
-    // Save commitment months to memberCommitments collection
-    // First delete existing commitments for this member
-    const existingSnap = await db.collection('memberCommitments').where('memberId','==',memberId).get();
-    const batch = db.batch();
-    existingSnap.docs.forEach(d=>batch.delete(d.ref));
-    await batch.commit();
-    // Save new commitments
-    for(const row of document.querySelectorAll('.enrollment-row')){
-        const gid = row.querySelector('.enr-group').value;
-        const commVal = parseInt(row.querySelector('.enr-commitment')?.value)||0;
-        if(gid && commVal > 0){
-            await db.collection('memberCommitments').add({
-                memberId, groupId: gid, targetMonth: commVal,
-                createdAt: new Date().toISOString()
-            });
-        }
-    }
-    bustCache('memberCommitments');
 
     closeModal('memberModal');
     showToast('✅ Member "' + n + '" saved with ' + enrollments.length + ' enrollment' + (enrollments.length!==1?'s':'') + '!');
