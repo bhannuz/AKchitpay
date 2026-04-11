@@ -18,7 +18,7 @@ async function printMemberStatement(mid){
     let enrollments=m.enrollments;
     if(!enrollments||!enrollments.length) enrollments=(m.groupIds||[]).map(gid=>({enrollmentId:'',groupId:gid,label:''}));
     const memberGroups=gs.filter(g=>m.groupIds&&m.groupIds.includes(g.id));
-    const today=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+    const today=fmtDateObj(new Date());
 
     // Build merged schedule+history rows with rowspan for multi-month payments
     function buildPrintSlot(g, enr, slotPays, allDueDates, elapsed, totalMonths, left, pct, gStartDisp, gDueDayDisp, slotNum, totalSlots){
@@ -291,7 +291,7 @@ async function generateGroupPDF(gid){
     const allDueDates = getGroupDueDates(g);
     const gStartDisp  = fmtDate(g.startDate || g.gStart || '');
     const gDueDayDisp = g.dueDay ? `${g.dueDay}${['st','nd','rd'][((g.dueDay%100-11)%10)-1]||'th'} of every month` : '—';
-    const today = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+    const today = fmtDateObj(new Date());
 
     const gMs = ms.filter(m => (m.enrollments||[]).some(e=>e.groupId===g.id) || (m.groupIds||[]).includes(g.id));
     const expandedSlots = [];
