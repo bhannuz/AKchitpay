@@ -127,10 +127,10 @@ async function loadMemberLedger(){
                 return `<tr style="">
                     <td style="text-align:center;color:var(--text-dim);font-weight:700;font-size:0.7rem;">${slotIndex+1}</td>
                     <td style="color:${isOverdue?'#f87171':'#c7d2fe'};font-weight:600;">${fmtDate(dueDate)}</td>
+                    <td style="vertical-align:middle;">${_poCellPending}</td>
                     <td style="color:#c4b5fd;">${chitAmount>0?fmtAmt(chitAmount):'—'}</td>
                     <td style="vertical-align:middle;color:var(--text-dim);font-size:0.7rem;">—</td>
                     <td style="vertical-align:middle;color:var(--text-dim);font-weight:700;">—</td>
-                    <td style="vertical-align:middle;">${_poCellPending}</td>
                     <td style="vertical-align:middle;color:var(--text-dim);">—</td>
                     <td style="vertical-align:middle;">${statusBadge}</td>
                     <td style="vertical-align:middle;color:var(--text-dim);font-size:0.7rem;">—</td>
@@ -174,10 +174,10 @@ async function loadMemberLedger(){
                 return `<tr style="background:${rowBg};${rowBL}">
                         <td style="text-align:center;color:var(--text-dim);font-weight:700;font-size:0.7rem;">${slotIndex+1}</td>
                         <td style="color:${dateColor};font-weight:600;">${fmtDate(dueDate)}</td>
+                        <td style="vertical-align:middle;">${_poCellSingle}</td>
                         <td style="color:#c4b5fd;">${chitAmount>0?fmtAmt(chitAmount):'—'}</td>
                         <td style="vertical-align:middle;color:var(--text-dim);font-size:0.7rem;">${fmtDate(pay.date)}</td>
                         <td style="vertical-align:middle;color:${isPaid?'#34d399':'#fbbf24'};font-weight:700;">${fmtAmt(iPaid)}</td>
-                        <td style="vertical-align:middle;">${_poCellSingle}</td>
                         <td style="vertical-align:middle;color:#f59e0b;">${iBal>0?fmtAmt(iBal):'—'}</td>
                         <td style="vertical-align:middle;">${statusBadge}</td>
                         <td style="vertical-align:middle;color:var(--text-dim);font-size:0.7rem;">${iMode}</td>
@@ -206,10 +206,10 @@ async function loadMemberLedger(){
             mainRows += `<tr style="background:${isPartialFullyPaid ? 'rgba(16,185,129,0.07)' : 'rgba(245,158,11,0.12)'};border-left:3px solid ${isPartialFullyPaid ? '#10b981' : '#f59e0b'};font-weight:600;cursor:pointer;" onclick="togglePaymentDetails(this,'partial_${sectionId}_${slotIndex}')">
                     <td style="text-align:center;color:${isPartialFullyPaid ? '#34d399' : '#f59e0b'};font-weight:800;font-size:0.8rem;">▶ ${slotIndex+1}</td>
                     <td style="color:${isPartialFullyPaid ? '#a5b4fc' : '#fbbf24'};font-weight:700;">${fmtDate(dueDate)}</td>
+                    <td style="vertical-align:middle;">${_poCellMulti}</td>
                     <td style="color:#c4b5fd;">${chitAmount>0?fmtAmt(chitAmount):'—'}</td>
                     <td style="vertical-align:middle;color:${isPartialFullyPaid ? '#34d399' : '#f59e0b'};font-weight:700;">Multiple Pays</td>
                     <td style="vertical-align:middle;color:${isPartialFullyPaid ? '#34d399' : '#fbbf24'};font-weight:700;">${fmtAmt(totalMonthPayments)}</td>
-                    <td style="vertical-align:middle;">${_poCellMulti}</td>
                     <td style="vertical-align:middle;color:#f59e0b;">${mainIBal>0?fmtAmt(mainIBal):'—'}</td>
                     <td style="vertical-align:middle;">${statusForPartial}</td>
                     <td style="vertical-align:middle;color:var(--text-dim);font-size:0.7rem;">—</td>
@@ -238,10 +238,10 @@ async function loadMemberLedger(){
                 return `<tr class="partial_${sectionId}_${slotIndex}" style="display:none;background:rgba(245,158,11,0.04);border-left:2px solid #f59e0b;">
                     <td style="text-align:center;color:#f59e0b;font-size:0.6rem;padding:4px 6px;font-weight:800;">  ↳${payIdx+1}</td>
                     <td style="color:#fbbf24;font-weight:600;font-size:0.85rem;"></td>
+                    <td style="vertical-align:middle;color:var(--text-dim);">—</td>
                     <td style="color:#c4b5fd;"></td>
                     <td style="vertical-align:middle;color:#f59e0b;font-size:0.75rem;font-weight:700;">${fmtDate(pay.date)}</td>
                     <td style="vertical-align:middle;color:#34d399;font-weight:700;">${fmtAmt(iPaid)}</td>
-                    <td style="vertical-align:middle;color:var(--text-dim);">—</td>
                     <td style="vertical-align:middle;color:#f59e0b;">${iBal>0?fmtAmt(iBal):'—'}</td>
                     <td style="vertical-align:middle;">${iStatusBadge}</td>
                     <td style="vertical-align:middle;color:var(--text-dim);font-size:0.7rem;">${iMode}</td>
@@ -286,8 +286,12 @@ async function loadMemberLedger(){
         const chitPickedPay = slotPays.find(p => p.chitPicked === 'Yes');
         const chitPickedAmt = chitPickedPay ? (parseFloat(chitPickedPay.chit)||0) : 0;
 
-        // ── Commitment info ──
-        const commObj = mComms.find(c => c.groupId === grp.id);
+        // ── Commitment info (per slot, not just per member) ──
+        const commObj = mComms.find(c => 
+            c.groupId === grp.id && 
+            c.memberId === mid &&
+            (c.slotNum === slotNum || c.slotNum == null || !c.slotNum)
+        );
 
         return `<div style="margin-bottom:16px;page-break-inside:avoid;">
             <div style="background:#1c253b;border-radius:12px 12px 0 0;padding:12px 16px;border:1px solid var(--border);border-bottom:none;page-break-inside:avoid;">
@@ -346,10 +350,10 @@ async function loadMemberLedger(){
                             <thead><tr style="page-break-inside:avoid;">
                                 <th style="text-align:center;">#</th>
                                 <th>Due Date</th>
+                                <th style="color:#a78bfa;">Payout</th>
                                 <th>Monthly Pay</th>
                                 <th>Pay Date</th>
                                 <th>Paid</th>
-                                <th style="color:#a78bfa;">Payout</th>
                                 <th>Balance</th>
                                 <th>Status</th>
                                 <th>Mode</th>
