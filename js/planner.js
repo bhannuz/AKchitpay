@@ -449,8 +449,8 @@ function ncpPrint(){
     var dueDay     = parseInt(document.getElementById('ncp_dueday').value)||1;
     var commission = parseFloat(document.getElementById('ncp_commission').value)||0;
     var base       = startVal ? new Date(startVal) : null;
-    var startDisp  = base ? base.toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'}) : '—';
-    var today      = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+    var startDisp  = base ? fmtDateObj(base) : '—';
+    var today      = fmtDateObj(new Date());
 
     var rows = document.querySelectorAll('#ncp_rows .ncp-row');
     var totalPay = 0;
