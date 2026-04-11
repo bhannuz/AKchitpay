@@ -234,7 +234,7 @@ async function loadMemberLedger(){
         const endDate = new Date(startDate);
         endDate.setMonth(endDate.getMonth() + totalMonths);
         const pad = n => String(n).padStart(2, '0');
-        const endDateStr = `${pad(endDate.getDate())}/${pad(endDate.getMonth()+1)}/${endDate.getFullYear()}`;
+        const _edMonths=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];const endDateStr=`${pad(endDate.getDate())}.${_edMonths[endDate.getMonth()]}.${endDate.getFullYear()}`;
 
         // ── Next due date (first unpaid future slot) ──
         const _today = new Date().toISOString().split('T')[0];
@@ -274,20 +274,20 @@ async function loadMemberLedger(){
                 <!-- Stat chips row -->
                 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;">
                     <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-top:2px solid #34d399;border-radius:10px;padding:8px 10px;text-align:center;">
-                        <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:3px;">COLLECTED</div>
-                        <div style="font-size:0.92rem;font-weight:900;color:#34d399;">${fmtAmt(tPaid)}</div>
+                        <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:3px;">START DATE</div>
+                        <div style="font-size:0.82rem;font-weight:900;color:#34d399;">${fmtDate(grp.startDate||grp.gStart||'')}</div>
                     </div>
-                    <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-top:2px solid #f59e0b;border-radius:10px;padding:8px 10px;text-align:center;">
-                        <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:3px;">BALANCE</div>
-                        <div style="font-size:0.92rem;font-weight:900;color:#f59e0b;">${tBal>0?fmtAmt(tBal):'₹0'}</div>
+                    <div style="background:rgba(155,89,182,0.08);border:1px solid rgba(155,89,182,0.25);border-top:2px solid #bb86fc;border-radius:10px;padding:8px 10px;text-align:center;">
+                        <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:3px;">COMMITMENT</div>
+                        <div style="font-size:0.82rem;font-weight:900;color:#bb86fc;">${commObj&&commObj.targetMonth?getOrdinal(commObj.targetMonth)+' Month':'—'}</div>
                     </div>
                     <div style="background:rgba(165,180,252,0.08);border:1px solid rgba(165,180,252,0.25);border-top:2px solid #a5b4fc;border-radius:10px;padding:8px 10px;text-align:center;">
                         <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:3px;">PENDING</div>
                         <div style="font-size:0.92rem;font-weight:900;color:#a5b4fc;">${monthsDone}/${totalMonths}</div>
                     </div>
-                    <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-top:2px solid #10b981;border-radius:10px;padding:8px 10px;text-align:center;">
-                        <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:3px;">PICKED</div>
-                        <div style="font-size:0.92rem;font-weight:900;color:#10b981;">${chitPickedPay?'✅ Yes':'—'}</div>
+                    <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-top:2px solid #ef4444;border-radius:10px;padding:8px 10px;text-align:center;">
+                        <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:3px;">END DATE</div>
+                        <div style="font-size:0.82rem;font-weight:900;color:#f87171;">${endDateStr}</div>
                     </div>
                     <div style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-top:2px solid #6366f1;border-radius:10px;padding:8px 10px;text-align:center;">
                         <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:3px;">NEXT DUE</div>
