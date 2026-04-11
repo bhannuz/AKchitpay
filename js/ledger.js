@@ -259,23 +259,19 @@ async function loadMemberLedger(){
         return `<div style="margin-bottom:16px;page-break-inside:avoid;">
             <div style="background:#1c253b;border-radius:12px 12px 0 0;padding:12px 16px;border:1px solid var(--border);border-bottom:none;page-break-inside:avoid;">
 
-                <!-- Group title row -->
-                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
-                    <div style="font-size:1rem;font-weight:900;color:#f39c12;">
-                        Group: ${grp.name}${labelBadge}${chitSlotBadge}
-                    </div>
-                    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-                        <span style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);border-radius:6px;padding:3px 9px;font-size:0.72rem;color:#a5b4fc;">📅 ${fmtDate(grp.startDate||grp.gStart||'')}</span>
-                        <span style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);border-radius:6px;padding:3px 9px;font-size:0.72rem;color:#f87171;">🏁 ${endDateStr}</span>
-                        ${commChip}
-                    </div>
-                </div>
-
-                <!-- Stat chips row -->
+                <!-- Stat chips — 6 chips, group name replaces overdue -->
                 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;">
+                    <div style="background:rgba(243,156,18,0.08);border:1px solid rgba(243,156,18,0.25);border-top:2px solid #f39c12;border-radius:10px;padding:8px 10px;text-align:center;">
+                        <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:3px;">GROUP</div>
+                        <div style="font-size:0.82rem;font-weight:900;color:#f39c12;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${grp.name}${chitSlotBadge}</div>
+                    </div>
                     <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-top:2px solid #34d399;border-radius:10px;padding:8px 10px;text-align:center;">
                         <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:3px;">START DATE</div>
-                        <div style="font-size:0.82rem;font-weight:900;color:#34d399;">${fmtDate(grp.startDate||grp.gStart||'')}</div>
+                        <div style="font-size:0.78rem;font-weight:900;color:#34d399;">${fmtDate(grp.startDate||grp.gStart||'')}</div>
+                    </div>
+                    <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-top:2px solid #ef4444;border-radius:10px;padding:8px 10px;text-align:center;">
+                        <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:3px;">END DATE</div>
+                        <div style="font-size:0.78rem;font-weight:900;color:#f87171;">${endDateStr}</div>
                     </div>
                     <div style="background:rgba(155,89,182,0.08);border:1px solid rgba(155,89,182,0.25);border-top:2px solid #bb86fc;border-radius:10px;padding:8px 10px;text-align:center;">
                         <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:3px;">COMMITMENT</div>
@@ -285,17 +281,9 @@ async function loadMemberLedger(){
                         <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:3px;">PENDING</div>
                         <div style="font-size:0.92rem;font-weight:900;color:#a5b4fc;">${monthsDone}/${totalMonths}</div>
                     </div>
-                    <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-top:2px solid #ef4444;border-radius:10px;padding:8px 10px;text-align:center;">
-                        <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:3px;">END DATE</div>
-                        <div style="font-size:0.82rem;font-weight:900;color:#f87171;">${endDateStr}</div>
-                    </div>
                     <div style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-top:2px solid #6366f1;border-radius:10px;padding:8px 10px;text-align:center;">
                         <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:3px;">NEXT DUE</div>
-                        <div style="font-size:0.82rem;font-weight:900;color:#818cf8;">${nextDueDate?fmtDate(nextDueDate):'—'}</div>
-                    </div>
-                    <div style="background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);border-top:2px solid #ef4444;border-radius:10px;padding:8px 10px;text-align:center;">
-                        <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:3px;">OVERDUE</div>
-                        <div style="font-size:0.92rem;font-weight:900;color:${overdueCnt>0?'#f87171':'var(--text-dim)'};"> ${overdueCnt>0?overdueCnt+' month'+(overdueCnt>1?'s':''):'—'}</div>
+                        <div style="font-size:0.78rem;font-weight:900;color:#818cf8;">${nextDueDate?fmtDate(nextDueDate):'—'}</div>
                     </div>
                 </div>
 
@@ -303,7 +291,7 @@ async function loadMemberLedger(){
                 <div style="background:#252f48;border-radius:5px;height:6px;overflow:hidden;">
                     <div style="height:100%;border-radius:5px;background:linear-gradient(90deg,#f39c12,#f57c00);width:${pct}%;"></div>
                 </div>
-                <div style="font-size:0.62rem;color:var(--text-dim);margin-top:4px;">Month ${monthsDone}/${totalMonths} paid</div>
+                <div style="font-size:0.62rem;color:var(--text-dim);margin-top:4px;">Month ${monthsDone}/${totalMonths} paid${overdueCnt>0?' · <span style="color:#f87171;">'+overdueCnt+' overdue</span>':''}</div>
             </div>
 
             <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:0 0 12px 12px;overflow:hidden;page-break-inside:avoid;">
