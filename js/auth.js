@@ -264,7 +264,7 @@ async function renderAccessRequests(){
     }
 
     list.innerHTML = filtered.map(function(r){
-        var dateStr = r.requestedAt ? new Date(r.requestedAt).toLocaleDateString('en-IN') : '—';
+        var dateStr = r.requestedAt ? fmtDateObj(new Date(r.requestedAt)) : '—';
         var actions = '';
         if(r.status === 'pending'){
             actions = '<button class="btn-approve" onclick="handleApprove(\'' + r.id + '\',\'' + r.phone + '\')">✅ Approve</button>' +
