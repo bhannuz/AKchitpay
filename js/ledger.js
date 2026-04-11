@@ -22,6 +22,8 @@ async function loadMemberLedger(){
     const gs=await getCollection('groups');
     const ps=await getCollection('payments');
     const cs=await getCollection('memberCommitments');
+    const payoutsDoc = await db.collection('settings').doc('collectionPayouts').get().catch(()=>null);
+    const _payoutsMap = payoutsDoc && payoutsDoc.exists ? (payoutsDoc.data().payouts||{}) : {};
     const m=ms.find(x=>x.id===mid); if(!m) return;
     const mPays=ps.filter(p=>p.memberId===mid);
     const mComms=cs.filter(c=>c.memberId===mid);
@@ -100,12 +102,18 @@ async function loadMemberLedger(){
                     ? `<span style="background:rgba(155,89,182,0.2);color:#bb86fc;border:1px solid rgba(155,89,182,0.4);border-radius:5px;padding:1px 6px;font-size:0.62rem;font-weight:800;">✨ CHIT TARGET</span>`
                     : `<span style="color:var(--text-dim);">—</span>`;
                 
+                const _poPending = _payoutsMap[grp.id+'_'+slotIndex]||0;
+                const _poKeyPending = grp.id+'_'+slotIndex;
+                const _poCellPending = !isMember
+                    ? `<input type="number" value="${_poPending||''}" placeholder="—" data-gid="${grp.id}" data-idx="${slotIndex}" onchange="updateLedgerPayout(this)" style="width:72px;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);color:#a78bfa;border-radius:6px;padding:3px 6px;font-size:0.72rem;font-weight:700;text-align:center;outline:none;">`
+                    : `<span style="color:var(--text-dim);">—</span>`;
                 return `<tr style="">
                     <td style="text-align:center;color:var(--text-dim);font-weight:700;font-size:0.7rem;">${slotIndex+1}</td>
                     <td style="color:${isOverdue?'#f87171':'#c7d2fe'};font-weight:600;">${fmtDate(dueDate)}</td>
                     <td style="color:#c4b5fd;">${chitAmount>0?fmtAmt(chitAmount):'—'}</td>
                     <td style="vertical-align:middle;color:var(--text-dim);font-size:0.7rem;">—</td>
                     <td style="vertical-align:middle;color:var(--text-dim);font-weight:700;">—</td>
+                    <td style="vertical-align:middle;">${_poCellPending}</td>
                     <td style="vertical-align:middle;color:var(--text-dim);">—</td>
                     <td style="vertical-align:middle;">${statusBadge}</td>
                     <td style="vertical-align:middle;color:var(--text-dim);font-size:0.7rem;">—</td>
@@ -142,12 +150,17 @@ async function loadMemberLedger(){
                 
                 const dateColor = isPaid ? '#a5b4fc' : '#c7d2fe';
                 
+                const _poSingle = _payoutsMap[grp.id+'_'+slotIndex]||0;
+                const _poCellSingle = !isMember
+                    ? `<input type="number" value="${_poSingle||''}" placeholder="—" data-gid="${grp.id}" data-idx="${slotIndex}" onchange="updateLedgerPayout(this)" style="width:72px;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);color:#a78bfa;border-radius:6px;padding:3px 6px;font-size:0.72rem;font-weight:700;text-align:center;outline:none;">`
+                    : (_poSingle>0 ? `<span style="color:#a78bfa;font-weight:700;">${fmtAmt(_poSingle)}</span>` : `<span style="color:var(--text-dim);">—</span>`);
                 return `<tr style="background:${rowBg};${rowBL}">
                         <td style="text-align:center;color:var(--text-dim);font-weight:700;font-size:0.7rem;">${slotIndex+1}</td>
                         <td style="color:${dateColor};font-weight:600;">${fmtDate(dueDate)}</td>
                         <td style="color:#c4b5fd;">${chitAmount>0?fmtAmt(chitAmount):'—'}</td>
                         <td style="vertical-align:middle;color:var(--text-dim);font-size:0.7rem;">${fmtDate(pay.date)}</td>
                         <td style="vertical-align:middle;color:${isPaid?'#34d399':'#fbbf24'};font-weight:700;">${fmtAmt(iPaid)}</td>
+                        <td style="vertical-align:middle;">${_poCellSingle}</td>
                         <td style="vertical-align:middle;color:#f59e0b;">${iBal>0?fmtAmt(iBal):'—'}</td>
                         <td style="vertical-align:middle;">${statusBadge}</td>
                         <td style="vertical-align:middle;color:var(--text-dim);font-size:0.7rem;">${iMode}</td>
@@ -169,12 +182,17 @@ async function loadMemberLedger(){
             let mainRows = '';
             
             // Main summary row for this month (shows total of all partials) - CLICKABLE to toggle
+            const _poMulti = _payoutsMap[grp.id+'_'+slotIndex]||0;
+            const _poCellMulti = !isMember
+                ? `<input type="number" value="${_poMulti||''}" placeholder="—" data-gid="${grp.id}" data-idx="${slotIndex}" onchange="updateLedgerPayout(this)" style="width:72px;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);color:#a78bfa;border-radius:6px;padding:3px 6px;font-size:0.72rem;font-weight:700;text-align:center;outline:none;">`
+                : (_poMulti>0 ? `<span style="color:#a78bfa;font-weight:700;">${fmtAmt(_poMulti)}</span>` : `<span style="color:var(--text-dim);">—</span>`);
             mainRows += `<tr style="background:${isPartialFullyPaid ? 'rgba(16,185,129,0.07)' : 'rgba(245,158,11,0.12)'};border-left:3px solid ${isPartialFullyPaid ? '#10b981' : '#f59e0b'};font-weight:600;cursor:pointer;" onclick="togglePaymentDetails(this,'partial_${sectionId}_${slotIndex}')">
                     <td style="text-align:center;color:${isPartialFullyPaid ? '#34d399' : '#f59e0b'};font-weight:800;font-size:0.8rem;">▶ ${slotIndex+1}</td>
                     <td style="color:${isPartialFullyPaid ? '#a5b4fc' : '#fbbf24'};font-weight:700;">${fmtDate(dueDate)}</td>
                     <td style="color:#c4b5fd;">${chitAmount>0?fmtAmt(chitAmount):'—'}</td>
                     <td style="vertical-align:middle;color:${isPartialFullyPaid ? '#34d399' : '#f59e0b'};font-weight:700;">Multiple Payments</td>
                     <td style="vertical-align:middle;color:${isPartialFullyPaid ? '#34d399' : '#fbbf24'};font-weight:700;">${fmtAmt(totalMonthPayments)}</td>
+                    <td style="vertical-align:middle;">${_poCellMulti}</td>
                     <td style="vertical-align:middle;color:#f59e0b;">${mainIBal>0?fmtAmt(mainIBal):'—'}</td>
                     <td style="vertical-align:middle;">${statusForPartial}</td>
                     <td style="vertical-align:middle;color:var(--text-dim);font-size:0.7rem;">—</td>
@@ -206,6 +224,7 @@ async function loadMemberLedger(){
                     <td style="color:#c4b5fd;"></td>
                     <td style="vertical-align:middle;color:#f59e0b;font-size:0.75rem;font-weight:700;">${fmtDate(pay.date)}</td>
                     <td style="vertical-align:middle;color:#34d399;font-weight:700;">${fmtAmt(iPaid)}</td>
+                    <td style="vertical-align:middle;color:var(--text-dim);">—</td>
                     <td style="vertical-align:middle;color:#f59e0b;">${iBal>0?fmtAmt(iBal):'—'}</td>
                     <td style="vertical-align:middle;">${iStatusBadge}</td>
                     <td style="vertical-align:middle;color:var(--text-dim);font-size:0.7rem;">${iMode}</td>
@@ -313,6 +332,7 @@ async function loadMemberLedger(){
                                 <th>Monthly Pay</th>
                                 <th>Pay Date</th>
                                 <th>Paid</th>
+                                <th style="color:#a78bfa;">Payout</th>
                                 <th>Balance</th>
                                 <th>Status</th>
                                 <th>Mode</th>
@@ -381,6 +401,26 @@ async function loadMemberLedger(){
         document.getElementById('mhBalance').textContent = fmtAmt(totalBal);
     } else {
         document.getElementById('ledgerData').innerHTML = ledgerHtml;
+    }
+}
+
+// Save payout from ledger (admin only — input is not rendered for members)
+async function updateLedgerPayout(input){
+    if(!isAdmin()){ showToast('🚫 Access denied', false); return; }
+    const gid = input.dataset.gid;
+    const idx = parseInt(input.dataset.idx);
+    const val = parseFloat(input.value)||0;
+    try {
+        const doc = await db.collection('settings').doc('collectionPayouts').get();
+        const payouts = doc.exists ? (doc.data().payouts||{}) : {};
+        const key = gid + '_' + idx;
+        if(val > 0) payouts[key] = val;
+        else delete payouts[key];
+        await db.collection('settings').doc('collectionPayouts').set({ payouts }, { merge: false });
+        input.style.borderColor = '#34d399';
+        setTimeout(() => { input.style.borderColor = 'rgba(167,139,250,0.3)'; }, 1200);
+    } catch(e) {
+        showToast('❌ Failed to save payout', false);
     }
 }
 
