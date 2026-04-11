@@ -447,7 +447,7 @@ async function generateWaReminders(){
             if(g.dueDay){
                 var d = new Date(); d.setDate(parseInt(g.dueDay));
                 if(d < new Date()) d.setMonth(d.getMonth()+1);
-                nextDue = d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+                nextDue = fmtDateObj(d);
             }
             return { name: g.name, pending, monthly, nextDue };
         }).filter(function(x){ return x.pending > 0; });
