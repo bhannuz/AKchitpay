@@ -36,7 +36,7 @@ async function loadMemberLedger(){
     const isMember = CURRENT_USER && CURRENT_USER.role==='member';
     const today = new Date().toISOString().split('T')[0];
 
-    function buildSection(grp, enr, slotPays, slotNum, totalSlots, allDueDates, sectionId, mComms){
+    function buildSection(grp, enr, slotPays, slotNum, totalSlots, allDueDates, sectionId, mComms, mid){
         const totalMonths  = parseInt(grp.duration||grp.gDuration)||21;
         
         // Get chit amount from Firebase field: fixedAmt (PRIORITY 1)
@@ -113,8 +113,13 @@ async function loadMemberLedger(){
                     ? `<span style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);border-radius:5px;padding:2px 6px;font-size:0.62rem;font-weight:800;">🔴 Overdue</span>`
                     : `<span style="background:rgba(245,158,11,0.08);color:#fbbf24;border:1px solid rgba(245,158,11,0.2);border-radius:5px;padding:2px 6px;font-size:0.62rem;font-weight:800;">⏳ Pending</span>`;
                 
-                // Check for commitment on this month
-                const commitment = mComms.find(c => c.groupId === grp.id && c.targetMonth === slotIndex + 1);
+                // Check for commitment on this month (per slot per member)
+                const commitment = mComms.find(c => 
+                    c.groupId === grp.id && 
+                    c.memberId === mid && 
+                    c.slotNum === slotNum &&
+                    c.targetMonth === slotIndex + 1
+                );
                 const commitmentBadge = commitment 
                     ? `<span style="background:rgba(155,89,182,0.2);color:#bb86fc;border:1px solid rgba(155,89,182,0.4);border-radius:5px;padding:1px 6px;font-size:0.62rem;font-weight:800;">✨ CHIT TARGET</span>`
                     : `<span style="color:var(--text-dim);">—</span>`;
@@ -157,8 +162,13 @@ async function loadMemberLedger(){
                 
                 const editCell = !isMember ? `<button class="btn-edit-sm" onclick="openEditPayment('${pay.id}')" style="font-size:0.62rem;padding:3px 7px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;border-radius:4px;cursor:pointer;">Edit</button>` : '';
                 
-                // Check for commitment on this month
-                const commitment = mComms.find(c => c.groupId === grp.id && c.targetMonth === slotIndex + 1);
+                // Check for commitment on this month (per slot per member)
+                const commitment = mComms.find(c => 
+                    c.groupId === grp.id && 
+                    c.memberId === mid && 
+                    c.slotNum === slotNum &&
+                    c.targetMonth === slotIndex + 1
+                );
                 const chitPickedCell = commitment
                     ? `<span style="background:rgba(155,89,182,0.2);color:#bb86fc;border:1px solid rgba(155,89,182,0.4);border-radius:5px;padding:1px 6px;font-size:0.62rem;font-weight:800;">✨ CHIT TARGET</span>`
                     : (iCp
@@ -286,11 +296,11 @@ async function loadMemberLedger(){
         const chitPickedPay = slotPays.find(p => p.chitPicked === 'Yes');
         const chitPickedAmt = chitPickedPay ? (parseFloat(chitPickedPay.chit)||0) : 0;
 
-        // ── Commitment info (per slot, not just per member) ──
+        // ── Commitment info (per slot per member) ──
         const commObj = mComms.find(c => 
             c.groupId === grp.id && 
             c.memberId === mid &&
-            (c.slotNum === slotNum || c.slotNum == null || !c.slotNum)
+            c.slotNum === slotNum
         );
 
         return `<div style="margin-bottom:16px;page-break-inside:avoid;">
@@ -394,7 +404,7 @@ async function loadMemberLedger(){
             
             const allDueDates = buildDueDateList(grp);
             const id = `ledger_${idx}_${slotNum}`;
-            slotSections.push(buildSection(grp, enr, slotPays, slotNum, totalSlots, allDueDates, id, mComms));
+            slotSections.push(buildSection(grp, enr, slotPays, slotNum, totalSlots, allDueDates, id, mComms, mid));
         }
         
         return slotSections.join('');
