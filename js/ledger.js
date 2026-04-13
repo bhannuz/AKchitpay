@@ -21,6 +21,7 @@ async function loadMemberLedger(){
     const ms=await getCollection('members');
     const gs=await getCollection('groups');
     const ps=await getCollection('payments');
+    bustCache('memberCommitments');  // always fresh for commitment display
     const cs=await getCollection('memberCommitments');
     const payoutsDoc = await db.collection('settings').doc('collectionPayouts').get().catch(()=>null);
     const _payoutsMap = payoutsDoc && payoutsDoc.exists ? (payoutsDoc.data().payouts||{}) : {};
