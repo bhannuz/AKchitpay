@@ -541,4 +541,3 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadWhatsAppTemplates();
     console.log('✅ WhatsApp Templates System Loaded');
 });
-
