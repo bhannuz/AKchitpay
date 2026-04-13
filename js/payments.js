@@ -196,6 +196,19 @@ function openPaymentModal(){
     if(!isAdmin()){showToast('🚫 Access denied',false);return;}
     resetPaymentForm();
     openModal('paymentModal');
+<input type="number" id="paidAmount" placeholder="Amount">
+
+
+<div style="margin-top:12px;">
+    <label>Send WhatsApp Message:</label>
+    <select id="paymentTemplate" onchange="loadTemplatePreview('paymentTemplate')">
+        <option value="">-- Don't Send --</option>
+    </select>
+    <div id="paymentTemplate_preview" style="..."></div>
+</div>
+
+
+<button onclick="savePayment()">Save Payment</button>
 }
 
 async function linkGroupForPayment(){
