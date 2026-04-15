@@ -281,9 +281,17 @@ async function loadMemberLedger(){
 
                 <!-- Stat chips — 6 chips, group name replaces overdue -->
                 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;">
-                    <div style="background:rgba(243,156,18,0.08);border:1px solid rgba(243,156,18,0.25);border-top:2px solid #f39c12;border-radius:10px;padding:8px 10px;text-align:center;">
-                        <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:3px;">GROUP</div>
-                        <div style="font-size:0.82rem;font-weight:900;color:#f39c12;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${grp.name}${chitSlotBadge}</div>
+                    <div style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);border-top:2px solid #6366f1;border-radius:10px;padding:8px 10px;text-align:center;">
+                        <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:3px;">COMMIT AVAILABLE</div>
+                        <div style="font-size:0.78rem;font-weight:900;color:#a5b4fc;">${(()=>{
+                            const takenMonths = new Set(mComms.filter(c=>c.groupId===grp.id).map(c=>c.targetMonth));
+                            const free = [];
+                            for(let m=1;m<=totalMonths;m++){ if(!takenMonths.has(m)) free.push(m); }
+                            if(!free.length) return '<span style="color:#f87171;font-size:0.7rem;">All taken</span>';
+                            if(free.length === totalMonths) return '<span style="color:#34d399;font-size:0.7rem;">All free</span>';
+                            const disp = free.slice(0,4).map(n=>getOrdinal(n)).join(', ');
+                            return disp + (free.length>4 ? ' +' + (free.length-4) + ' more' : '');
+                        })()}</div>
                     </div>
                     <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-top:2px solid #34d399;border-radius:10px;padding:8px 10px;text-align:center;">
                         <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:3px;">START DATE</div>
@@ -464,15 +472,24 @@ function getMonthSlot(dueDates, payDate){
 }
 
 function buildDueDateList(grp){
-    const start = grp.startDate||grp.gStart||new Date().toISOString().split('T')[0];
-    const dur = parseInt(grp.duration||grp.gDuration||21);
-    const dueDay = parseInt(grp.dueDay||5);
+    const start  = grp.startDate||grp.gStart||new Date().toISOString().split('T')[0];
+    const dur    = parseInt(grp.duration||grp.gDuration)||21;
+    const s      = new Date(start+'T00:00:00');
+
+    // ALWAYS use the group's dueDay field — never fall back to start date's day
+    // This ensures due dates always land on the configured day (e.g. 5th of each month)
+    const dueDay = parseInt(grp.dueDay) || parseInt(grp.monthlyDueDay) || s.getDate();
+
+    const baseYear  = s.getFullYear();
+    const baseMonth = s.getMonth(); // 0-indexed
+    const pad = n => String(n).padStart(2,'0');
     const dates = [];
-    let d = new Date(start+'T00:00:00');
     for(let i=0; i<dur; i++){
-        dates.push(d.toISOString().split('T')[0]);
-        d.setMonth(d.getMonth()+1);
-        d.setDate(dueDay);
+        const yr     = baseYear + Math.floor((baseMonth + i) / 12);
+        const mo     = (baseMonth + i) % 12;
+        const maxDay = new Date(yr, mo+1, 0).getDate(); // last day of month
+        const day    = Math.min(dueDay, maxDay);
+        dates.push(yr + '-' + pad(mo+1) + '-' + pad(day));
     }
     return dates;
 }
