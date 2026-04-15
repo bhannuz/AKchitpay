@@ -63,7 +63,8 @@ function getGroupDueDates(group){
     const start=group.startDate||group.gStart;
     if(!start) return[];
     const totalMonths=parseInt(group.duration||group.gDuration)||21;
-    const dueDay=parseInt(group.dueDay)||new Date(start).getDate();
+    // Always use the group's configured dueDay, not the start date's day
+    const dueDay=parseInt(group.dueDay)||parseInt(group.monthlyDueDay)||new Date(start).getDate();
     const s=new Date(start+'T00:00:00');
     const startYear=s.getFullYear();
     const startMonth=s.getMonth();
