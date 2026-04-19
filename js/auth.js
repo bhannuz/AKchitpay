@@ -220,7 +220,7 @@ function handleLogout(){
     document.getElementById('memberLedgerArea').style.display = 'none';
     document.getElementById('qrGeneratorSection').style.display = '';
     document.getElementById('waReminderSection').style.display = '';
-    document.getElementById('adminQuickBtns').style.display = 'flex';
+    document.getElementById('adminQuickBtns').style.display = 'none';
     document.getElementById('memberQrArea').style.display = 'none';
     document.getElementById('logoutBtn').style.display = 'none';
     document.getElementById('accessReqBtn').style.display = 'none';
