@@ -513,15 +513,37 @@ async function savePayment(){
         const balance=Math.max(0,totalChit-paid);
         const enrollmentId1 = document.getElementById('pEnrollmentId').value||'';
         const slotNum1 = parseInt(document.getElementById('pSlotNum').value||'1');
-        await db.collection('payments').add({
+        const multiRef=await db.collection('payments').add({
             memberId:mid, groupId:gid, enrollmentId:enrollmentId1, slotNum:slotNum1, date,
             chit:chitPerMonth, paid, balance, paidBy, chitPicked, chitPickedBy,
             numMonths, monthSlots, monthSlot:monthSlots[0],
             paidPerMonth:paid/numMonths, balPerMonth:balance/numMonths,
             ...(perMonthBreakdown?{perMonthBreakdown}:{})
         });
+        // Mirror to co-member if joint
+        const ms3=await getCollection('members');
+        const pM3=ms3.find(x=>x.id===mid);
+        const pEnr3=pM3&&pM3.enrollments?pM3.enrollments.find(e=>e.groupId===gid):null;
+        const coMid3=pEnr3&&pEnr3.coMemberId?pEnr3.coMemberId:'';
+        if(coMid3){
+            const coM3=ms3.find(x=>x.id===coMid3);
+            const coEnr3=coM3&&coM3.enrollments?coM3.enrollments.find(e=>e.groupId===gid):null;
+            await db.collection('payments').add({
+                memberId:coMid3, groupId:gid,
+                enrollmentId:coEnr3?coEnr3.enrollmentId||'':enrollmentId1,
+                slotNum:slotNum1, date,
+                chit:chitPerMonth, paid, balance, paidBy, chitPicked, chitPickedBy,
+                numMonths, monthSlots, monthSlot:monthSlots[0],
+                paidPerMonth:paid/numMonths, balPerMonth:balance/numMonths,
+                mirroredFrom:multiRef.id,
+                mirroredPrimaryMemberId:mid,
+                isJointMirror:true,
+                ...(perMonthBreakdown?{perMonthBreakdown}:{})
+            });
+        }
         bustCache('payments');
-        showToast(`\u2705 ${numMonths}-month payment saved!`);
+        const jointNote3=coMid3?' — reflected in both ledgers':'';
+        showToast('\u2705 '+numMonths+'-month payment saved!'+jointNote3);
     } else {
         // Single month — use the dropdown-selected slot
         const slotSel=document.getElementById('pSingleMonthSlot');
@@ -542,16 +564,39 @@ async function savePayment(){
             if(!coPayerData.splitMembers[1].memberId) return showToast('❌ Select a co-payer member',false);
             if(Math.abs(splitTotal-paid)>1) return showToast('❌ Split amounts must add up to total paid',false);
         }
-        await db.collection('payments').add({
+        // Save primary payment
+        const primaryRef=await db.collection('payments').add({
             memberId:mid, groupId:gid, enrollmentId:enrollmentId2, slotNum:slotNum2, date,
             chit:chitPerMonth, paid, balance, paidBy, chitPicked, chitPickedBy,
             numMonths:1, monthSlot:selectedSlot, monthSlots:[selectedSlot],
             isPartial:isPartial, slotLabel:slotLabel,
             ...(coPayerData||{})
         });
+        // Mirror to co-member if joint enrollment
+        const ms2=await getCollection('members');
+        const primaryMember=ms2.find(x=>x.id===mid);
+        const primaryEnr=primaryMember&&primaryMember.enrollments
+            ?primaryMember.enrollments.find(e=>e.groupId===gid):null;
+        const coMid=primaryEnr&&primaryEnr.coMemberId?primaryEnr.coMemberId:'';
+        if(coMid){
+            const coM2=ms2.find(x=>x.id===coMid);
+            const coEnr2=coM2&&coM2.enrollments?coM2.enrollments.find(e=>e.groupId===gid):null;
+            await db.collection('payments').add({
+                memberId:coMid, groupId:gid,
+                enrollmentId:coEnr2?coEnr2.enrollmentId||'':enrollmentId2,
+                slotNum:slotNum2, date,
+                chit:chitPerMonth, paid, balance, paidBy, chitPicked, chitPickedBy,
+                numMonths:1, monthSlot:selectedSlot, monthSlots:[selectedSlot],
+                isPartial:isPartial, slotLabel:slotLabel,
+                mirroredFrom:primaryRef.id,
+                mirroredPrimaryMemberId:mid,
+                isJointMirror:true
+            });
+        }
         bustCache('payments');
-        const partialNote=isPartial?' \ud83d\udd36 Partial':'';
-        showToast(`\u2705 Payment saved for ${slotLabel}${partialNote}!`);
+        const partialNote=isPartial?' (Partial)':'';
+        const jointNote=coMid?' - reflected in both ledgers':'';
+        showToast('\u2705 Payment saved for '+slotLabel+partialNote+jointNote+'!');
     }
 
     closeModal('paymentModal');
@@ -627,7 +672,11 @@ async function saveEditPayment(){
 async function deletePayment(){
     if(!isAdmin()){showToast('\ud83d\udeab Access denied',false);return;}
     const pid=document.getElementById('epId').value;if(!pid)return;
-    showConfirm('\ud83d\uddd1','Delete Payment?','This will permanently delete this payment record.',async()=>{
+    showConfirm('\ud83d\uddd1','Delete Payment?','This will permanently delete this payment and its joint mirror (if any).',async()=>{
+        // Delete mirrored joint record too
+        const allPs=await getCollection('payments');
+        const mirror=allPs.find(p=>p.mirroredFrom===pid&&p.isJointMirror);
+        if(mirror) await db.collection('payments').doc(mirror.id).delete();
         await db.collection('payments').doc(pid).delete();
         bustCache('payments');
         closeModal('editPaymentModal');showToast('\ud83d\uddd1 Payment deleted');updateUI();
@@ -636,4 +685,4 @@ async function deletePayment(){
     });
 }
 
-// ═════════════════════════════════════════
+// ══════════════════════════════════════════
