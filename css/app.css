@@ -1,4 +1,3 @@
-
 /* ═══════════════════════════════════════════════════════════
    AK Chit Funds — app.css
    Edit only this file when changing styles / colours / layout
@@ -214,6 +213,10 @@
         .month-cb-item { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:10px; padding:10px 8px; cursor:pointer; transition:all .15s; font-size:0.72rem; min-height:52px; }
         .month-cb-item.already-paid { background:rgba(16,185,129,0.07); border-color:rgba(16,185,129,0.3); color:#34d399; opacity:0.6; cursor:not-allowed; }
         .month-cb-item input[type=checkbox] { accent-color:#818cf8; width:16px; height:16px; flex-shrink:0; }
+        #singleMonthIntent { background:rgba(99,102,241,0.07); border:1px solid rgba(99,102,241,0.22); border-radius:12px; padding:12px 14px; margin-bottom:12px; }
+        #paymentIntentBtns button:hover:not(:disabled) { filter:brightness(1.15); }
+        #selectedMonthDisplay { animation: fadeInUp .2s ease; }
+        @keyframes fadeInUp { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
         .selected-summary { font-size:0.75rem; color:#a5b4fc; margin-top:8px; font-weight:700; padding:8px 12px; background:rgba(99,102,241,0.12); border-radius:8px; }
 
         /* ── AUTH / LOGIN ── */
