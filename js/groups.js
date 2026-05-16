@@ -211,13 +211,11 @@ async function renderCollectionsTab(){
             const isPast    = dueDate < todayStr;
             const isToday   = dueDate === todayStr;
             const isFuture  = dueDate > todayStr;
-            const allMembersPaid = totalSlots > 0 && membersPaidThisMonth >= totalSlots;
             const status    = received===0&&isFuture ? 'upcoming'
                             : received===0&&(isPast||isToday) ? 'overdue'
                             : balance<0 ? 'deficit'
                             : payout>0&&balance===0 ? 'full'
-                            : allMembersPaid&&payout===0 ? 'received'
-                            : allMembersPaid ? 'full'
+                            : received>0&&payout===0 ? 'received'
                             : received>0 ? 'partial' : 'upcoming';
             const statusBadge = status==='full'     ? '<span style="background:rgba(16,185,129,0.15);color:#34d399;font-size:0.6rem;font-weight:800;padding:2px 8px;border-radius:99px;">✅ Settled</span>'
                               : status==='deficit'  ? '<span style="background:rgba(239,68,68,0.12);color:#f87171;font-size:0.6rem;font-weight:800;padding:2px 8px;border-radius:99px;">⬇ Deficit</span>'
@@ -348,7 +346,14 @@ async function renderGroupsTab(){
             return [
                 `<tr${pickedPay?' class="chit-picked"':''}>`,
                 `<td>${i+1}</td>`,
-                `<td><strong>${m.name}</strong>${multiChitBadge}${slotLabel}<br><span style="font-size:0.92rem;color:var(--text-dim);">${m.phone||''}</span></td>`,
+(()=>{
+                    const enr2=(m.enrollments||[]).find(e=>e.groupId===g.id);
+                    const coMid=enr2&&enr2.coMemberId?enr2.coMemberId:'';
+                    const coM2=coMid?ms.find(x=>x.id===coMid):null;
+                    const jointBadge=coM2?`<span style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;border-radius:5px;padding:1px 6px;font-size:0.72rem;font-weight:800;margin-left:5px;">👥 Joint</span>`:'';
+                    const coLine=coM2?`<div style="font-size:0.78rem;color:#a5b4fc;margin-top:1px;">+ ${coM2.name}${coM2.phone?' · '+coM2.phone:''}</div>`:'';
+                    return `<td><strong>${m.name}</strong>${multiChitBadge}${slotLabel}${jointBadge}<br><span style="font-size:0.92rem;color:var(--text-dim);">${m.phone||''}</span>${coLine}</td>`;
+                })(),
                 `<td style="color:#34d399;">${fmtAmt(paid)}</td>`,
                 `<td style="color:#f59e0b;">${fmtAmt(bal)}</td>`,
                 `<td style="color:#a5b4fc;font-size:1.05rem;">${monthsCovered}/${totalMonths}</td>`,
