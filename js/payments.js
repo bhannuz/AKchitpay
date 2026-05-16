@@ -232,6 +232,85 @@ function calcBalance(){
     }
 }
 
+
+// CO-PAYER / SPLIT PAYMENT
+// ══════════════════════════════════════════
+function toggleSplitPay(){
+    const on = document.getElementById('splitPayToggle').checked;
+    const sec = document.getElementById('coPayerSection');
+    sec.style.display = on ? 'block' : 'none';
+    if(on) buildCoPayerRows();
+    else document.getElementById('coPayerRows').innerHTML='';
+}
+
+async function buildCoPayerRows(){
+    const mid = document.getElementById('pMember').value;
+    const paid = parseFloat(document.getElementById('pPaid').value)||0;
+    const ms = await getCollection('members');
+    const primaryMember = ms.find(m=>m.id===mid);
+    const primaryName = primaryMember ? primaryMember.name : 'Primary Member';
+
+    // Build search list for co-payer (all members except primary)
+    const otherMembers = ms.filter(m=>m.id!==mid);
+    const memberOpts = otherMembers.map(m=>`<option value="${m.id}" data-name="${m.name}">${m.name}${m.phone?' ('+m.phone+')':''}</option>`).join('');
+
+    const half = paid>0 ? (paid/2).toFixed(0) : '';
+
+    document.getElementById('coPayerRows').innerHTML = `
+        <!-- Row 1: Primary member -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:9px;padding:8px 10px;">
+            <span style="font-size:0.88rem;font-weight:800;color:#a5b4fc;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">👤 ${primaryName} <span style="font-size:0.7rem;color:var(--text-dim);font-weight:600;">(Primary)</span></span>
+            <input type="number" id="coPay_primary" placeholder="₹ amount" value="${half}"
+                style="width:110px;background:var(--input-bg);border:1px solid var(--border);color:white;padding:6px 9px;border-radius:7px;font-size:0.95rem;"
+                oninput="calcCoPayerTotal()">
+        </div>
+        <!-- Row 2: Co-payer -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:9px;padding:8px 10px;flex-wrap:wrap;">
+            <select id="coPayer_memberId" style="flex:2;min-width:130px;background:var(--input-bg);border:1px solid var(--border);color:white;padding:7px 10px;border-radius:7px;font-size:0.88rem;" onchange="calcCoPayerTotal()">
+                <option value="">-- Select Co-payer --</option>
+                ${memberOpts}
+            </select>
+            <input type="number" id="coPay_amount" placeholder="₹ amount" value="${half}"
+                style="width:110px;background:var(--input-bg);border:1px solid var(--border);color:white;padding:6px 9px;border-radius:7px;font-size:0.95rem;"
+                oninput="calcCoPayerTotal()">
+        </div>`;
+    calcCoPayerTotal();
+}
+
+function calcCoPayerTotal(){
+    const paid = parseFloat(document.getElementById('pPaid').value)||0;
+    const p1 = parseFloat(document.getElementById('coPay_primary')?.value)||0;
+    const p2 = parseFloat(document.getElementById('coPay_amount')?.value)||0;
+    const total = p1+p2;
+    const totalDiv = document.getElementById('coPayerTotal');
+    if(!totalDiv) return;
+    totalDiv.style.display = 'block';
+    const match = paid>0 && Math.abs(total-paid)<1;
+    const diff = total-paid;
+    totalDiv.style.color = match ? '#34d399' : '#f87171';
+    totalDiv.style.borderLeft = `3px solid ${match?'#10b981':'#ef4444'}`;
+    totalDiv.innerHTML = match
+        ? `✅ Split totals match: ₹${total.toLocaleString('en-IN')}`
+        : `⚠️ Split total ₹${total.toLocaleString('en-IN')} ${diff>0?'exceeds':'is short of'} paid amount ₹${paid.toLocaleString('en-IN')} by ₹${Math.abs(diff).toLocaleString('en-IN')}`;
+}
+
+function getCoPayerData(){
+    if(!document.getElementById('splitPayToggle')?.checked) return null;
+    const mid = document.getElementById('pMember').value;
+    const p1amt = parseFloat(document.getElementById('coPay_primary')?.value)||0;
+    const coMemberId = document.getElementById('coPayer_memberId')?.value||'';
+    const coAmt = parseFloat(document.getElementById('coPay_amount')?.value)||0;
+    if(!coMemberId) return null;
+    return {
+        isSplit: true,
+        splitMembers: [
+            { memberId: mid, amount: p1amt },
+            { memberId: coMemberId, amount: coAmt }
+        ]
+    };
+}
+// ══════════════════════════════════════════
+
 // PAYMENT FORM
 // ══════════════════════════════════════════
 function resetPaymentForm(){
@@ -258,6 +337,11 @@ function resetPaymentForm(){
     const sel=document.getElementById('pChitPicked');
     [...sel.options].forEach(o=>o.disabled=false);
     sel.title='';
+    // reset split pay
+    if(document.getElementById('splitPayToggle')){ document.getElementById('splitPayToggle').checked=false; }
+    if(document.getElementById('coPayerSection')){ document.getElementById('coPayerSection').style.display='none'; }
+    if(document.getElementById('coPayerRows')){ document.getElementById('coPayerRows').innerHTML=''; }
+    if(document.getElementById('coPayerTotal')){ document.getElementById('coPayerTotal').style.display='none'; }
     // reset single month dropdown
     if(document.getElementById('singleMonthDropdownWrap')) document.getElementById('singleMonthDropdownWrap').style.display='none';
     if(document.getElementById('pSingleMonthSlot')) document.getElementById('pSingleMonthSlot').innerHTML='<option value="">-- Select Month --</option>';
@@ -316,6 +400,8 @@ async function onGroupChange(){
     document.getElementById('totalChitRef').style.display='none';
     const mid=document.getElementById('pMember').value;
     const gid=document.getElementById('pGroup').value;
+    // Show joint member info if this enrollment is a joint chit
+    await showJointMemberInfo(mid, gid);
     if(gid){
         const gs=await getCollection('groups');
         const grp=gs.find(g=>g.id===gid);
@@ -353,6 +439,40 @@ async function onGroupChange(){
         await buildSingleMonthDropdown();
     }
 }
+
+
+// JOINT ENROLLMENT DISPLAY
+// ══════════════════════════════════════════
+async function showJointMemberInfo(mid, gid){
+    let banner = document.getElementById('jointMemberBanner');
+    if(!banner) return;
+    banner.style.display='none';
+    banner.innerHTML='';
+    if(!mid||!gid) return;
+    const ms = await getCollection('members');
+    const m = ms.find(x=>x.id===mid);
+    if(!m||!m.enrollments) return;
+    const enr = m.enrollments.find(e=>e.groupId===gid);
+    if(!enr||!enr.coMemberId) return;
+    const coM = ms.find(x=>x.id===enr.coMemberId);
+    if(!coM) return;
+    banner.style.display='block';
+    banner.innerHTML=`
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:1.3rem;">👥</span>
+            <div>
+                <div style="font-size:0.88rem;font-weight:800;color:#a5b4fc;">Joint Chit</div>
+                <div style="font-size:0.8rem;color:var(--text-dim);">
+                    <strong style="color:#c4b5fd;">${m.name}</strong>
+                    <span style="margin:0 6px;color:var(--text-dim);">+</span>
+                    <strong style="color:#c4b5fd;">${coM.name}</strong>
+                    ${coM.phone?'<span style="color:var(--text-dim);"> · '+coM.phone+'</span>':''}
+                    share this chit slot
+                </div>
+            </div>
+        </div>`;
+}
+// ══════════════════════════════════════════
 
 async function savePayment(){
     if(!isAdmin()){showToast('\ud83d\udeab Access denied',false);return;}
@@ -415,11 +535,19 @@ async function savePayment(){
         const isPartial=paid>0&&chitPerMonth>0&&paid<chitPerMonth;
         const enrollmentId2=document.getElementById('pEnrollmentId').value||'';
         const slotNum2=parseInt(document.getElementById('pSlotNum').value||'1');
+        const coPayerData = getCoPayerData();
+        // Validate split total if split is on
+        if(coPayerData){
+            const splitTotal = coPayerData.splitMembers.reduce((s,m)=>s+m.amount,0);
+            if(!coPayerData.splitMembers[1].memberId) return showToast('❌ Select a co-payer member',false);
+            if(Math.abs(splitTotal-paid)>1) return showToast('❌ Split amounts must add up to total paid',false);
+        }
         await db.collection('payments').add({
             memberId:mid, groupId:gid, enrollmentId:enrollmentId2, slotNum:slotNum2, date,
             chit:chitPerMonth, paid, balance, paidBy, chitPicked, chitPickedBy,
             numMonths:1, monthSlot:selectedSlot, monthSlots:[selectedSlot],
-            isPartial:isPartial, slotLabel:slotLabel
+            isPartial:isPartial, slotLabel:slotLabel,
+            ...(coPayerData||{})
         });
         bustCache('payments');
         const partialNote=isPartial?' \ud83d\udd36 Partial':'';
