@@ -460,4 +460,4 @@ function toggleLedgerTable(id, header){
     if(chevron)chevron.style.transform=isOpen?'rotate(0deg)':'rotate(90deg)';
 }
 
-// ══════════════════════════════════════════
+// ═════════════════════════════════════════
