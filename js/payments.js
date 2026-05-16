@@ -29,13 +29,98 @@ async function onNumMonthsChange(){
     if(val==='1'){
         preview.style.display='none';
         document.getElementById('perMonthLabel').textContent='';
+        const mid=document.getElementById('pMember').value;
+        const gid=document.getElementById('pGroup').value;
+        if(mid&&gid) await buildPaymentIntentSelector();
     } else {
         document.getElementById('perMonthLabel').textContent='(per month)';
         preview.style.display='block';
+        document.getElementById('singleMonthIntent').style.display='none';
         await buildMonthSelectorGrid();
     }
     calcBalance();
 }
+
+// PAYMENT INTENT SELECTOR
+// ══════════════════════════════════════════
+window._selectedIntentSlot = null;
+
+async function buildPaymentIntentSelector(){
+    const mid=document.getElementById('pMember').value;
+    const gid=document.getElementById('pGroup').value;
+    const intentDiv=document.getElementById('singleMonthIntent');
+    const btnsDiv=document.getElementById('paymentIntentBtns');
+    const partialWrap=document.getElementById('partialPayWrap');
+    window._selectedIntentSlot=null;
+    document.getElementById('selectedMonthDisplay').style.display='none';
+    if(document.getElementById('partialPayToggle')) document.getElementById('partialPayToggle').checked=false;
+    if(document.getElementById('partialPayInfo')) document.getElementById('partialPayInfo').style.display='none';
+    partialWrap.style.display='none';
+    if(!mid||!gid){intentDiv.style.display='none';return;}
+    const gs=await getCollection('groups');
+    const grp=gs.find(g=>g.id===gid);
+    if(!grp){intentDiv.style.display='none';return;}
+    const {paidSlots,allDueDates}=await getPaidSlots(mid,gid,grp);
+    if(!allDueDates.length){intentDiv.style.display='none';return;}
+    intentDiv.style.display='block';
+    const today=new Date().toISOString().split('T')[0];
+    const currentSlot=getMonthSlot(allDueDates,today);
+    const candidates=[];
+    // Up to 2 previous unpaid months
+    let prevCount=0;
+    for(let i=currentSlot-1;i>=0&&prevCount<2;i--){
+        if(!paidSlots.has(i)){candidates.unshift({slot:i,label:fmtDate(allDueDates[i]),tag:'\u23ea Previous',color:'#f87171'});}
+        prevCount++;
+    }
+    // Current month
+    if(currentSlot>=0&&currentSlot<allDueDates.length){
+        const isPaid=paidSlots.has(currentSlot);
+        candidates.push({slot:currentSlot,label:fmtDate(allDueDates[currentSlot]),tag:isPaid?'\u2705 Paid':'\ud83d\udcc5 Current',color:isPaid?'#34d399':'#a5b4fc',disabled:isPaid});
+    }
+    // Next 2 upcoming months (advance)
+    for(let i=currentSlot+1;i<Math.min(currentSlot+3,allDueDates.length);i++){
+        if(!paidSlots.has(i)) candidates.push({slot:i,label:fmtDate(allDueDates[i]),tag:'\u23e9 Advance',color:'#fbbf24'});
+    }
+    btnsDiv.innerHTML=candidates.map(c=>`
+        <button type="button"
+            data-slot="${c.slot}"
+            onclick="selectIntentSlot(${c.slot}, '${c.label}', '${c.tag}')"
+            ${c.disabled?'disabled title="Already paid"':''}
+            style="border:2px solid ${c.color};border-radius:12px;padding:8px 14px;background:rgba(0,0,0,0.18);color:${c.color};
+                   font-weight:800;font-size:0.88rem;cursor:${c.disabled?'not-allowed':'pointer'};opacity:${c.disabled?0.5:1};
+                   display:flex;flex-direction:column;align-items:center;gap:2px;min-width:90px;transition:all .15s;">
+            <span style="font-size:0.75rem;opacity:0.8;">${c.tag}</span>
+            <span>${c.label}</span>
+        </button>`).join('');
+    // Auto-select current month if unpaid
+    const autoC=candidates.find(c=>c.tag.includes('Current')&&!c.disabled);
+    if(autoC) selectIntentSlot(autoC.slot,autoC.label,autoC.tag);
+    else {
+        // auto-select first unpaid
+        const firstUnpaid=candidates.find(c=>!c.disabled);
+        if(firstUnpaid) selectIntentSlot(firstUnpaid.slot,firstUnpaid.label,firstUnpaid.tag);
+    }
+}
+
+function selectIntentSlot(slot,label,tag){
+    window._selectedIntentSlot=slot;
+    document.querySelectorAll('#paymentIntentBtns button').forEach(b=>{
+        const active=parseInt(b.dataset.slot)===slot;
+        b.style.background=active?'rgba(99,102,241,0.28)':'rgba(0,0,0,0.18)';
+        b.style.boxShadow=active?'0 0 0 2px #6366f1':'none';
+        b.style.transform=active?'scale(1.05)':'scale(1)';
+    });
+    const display=document.getElementById('selectedMonthDisplay');
+    display.style.display='block';
+    display.innerHTML=`\u2705 Payment will be recorded for: <strong>${label}</strong> <span style="opacity:0.7;font-size:0.85rem;">${tag}</span>`;
+    document.getElementById('partialPayWrap').style.display='block';
+}
+
+function togglePartialPayment(){
+    const on=document.getElementById('partialPayToggle').checked;
+    document.getElementById('partialPayInfo').style.display=on?'block':'none';
+}
+// ══════════════════════════════════════════
 
 async function buildMonthSelectorGrid(){
     const mid=document.getElementById('pMember').value;
@@ -190,6 +275,13 @@ function resetPaymentForm(){
     const sel=document.getElementById('pChitPicked');
     [...sel.options].forEach(o=>o.disabled=false);
     sel.title='';
+    // Reset intent selector
+    window._selectedIntentSlot=null;
+    if(document.getElementById('singleMonthIntent')) document.getElementById('singleMonthIntent').style.display='none';
+    if(document.getElementById('selectedMonthDisplay')) document.getElementById('selectedMonthDisplay').style.display='none';
+    if(document.getElementById('partialPayWrap')) document.getElementById('partialPayWrap').style.display='none';
+    if(document.getElementById('partialPayToggle')) document.getElementById('partialPayToggle').checked=false;
+    if(document.getElementById('partialPayInfo')) document.getElementById('partialPayInfo').style.display='none';
 }
 
 function openPaymentModal(){
@@ -276,7 +368,11 @@ async function onGroupChange(){
             sel.title='';
         }
     }
-    if(document.getElementById('pNumMonths').value==='multi') await buildMonthSelectorGrid();
+    if(document.getElementById('pNumMonths').value==='multi'){
+        await buildMonthSelectorGrid();
+    } else {
+        await buildPaymentIntentSelector();
+    }
 }
 
 async function savePayment(){
@@ -331,18 +427,31 @@ async function savePayment(){
         const gs=await getCollection('groups');
         const grp=gs.find(g=>g.id===gid);
         const dueDates=grp?getGroupDueDates(grp):[];
-        const slotIdx=getMonthSlot(dueDates,date);
+        // Use admin-selected intent slot; fallback to date-based detection
+        const intentSlot=(window._selectedIntentSlot!==null&&window._selectedIntentSlot!==undefined)
+            ? window._selectedIntentSlot
+            : getMonthSlot(dueDates,date);
+        const isPartial=document.getElementById('partialPayToggle')?.checked||false;
         const balance=Math.max(0,chitPerMonth-paid);
-        const enrollmentId2 = document.getElementById('pEnrollmentId').value||'';
-        const slotNum2 = parseInt(document.getElementById('pSlotNum').value||'1');
+        const enrollmentId2=document.getElementById('pEnrollmentId').value||'';
+        const slotNum2=parseInt(document.getElementById('pSlotNum').value||'1');
+        // Guard: block duplicate full payment unless explicitly partial
+        if(intentSlot>=0&&!isPartial){
+            const {paidSlots}=await getPaidSlots(mid,gid,grp);
+            if(paidSlots.has(intentSlot)) return showToast('❌ This month is already fully paid. Tick "Partial Payment" to add another entry.', false);
+        }
+        const slotLabel=dueDates[intentSlot]?fmtDate(dueDates[intentSlot]):(intentSlot>=0?`Month ${intentSlot+1}`:'Unknown');
         await db.collection('payments').add({
             memberId:mid, groupId:gid, enrollmentId:enrollmentId2, slotNum:slotNum2, date,
             chit:chitPerMonth, paid, balance, paidBy, chitPicked, chitPickedBy,
-            numMonths:1, monthSlot:slotIdx>=0?slotIdx:null,
-            monthSlots:slotIdx>=0?[slotIdx]:[]
+            numMonths:1, monthSlot:intentSlot>=0?intentSlot:null,
+            monthSlots:intentSlot>=0?[intentSlot]:[],
+            isPartial:isPartial||false,
+            slotLabel:slotLabel||''
         });
         bustCache('payments');
-        showToast('✅ Payment saved!');
+        const partialNote=isPartial?' (Partial)':''
+        showToast(`✅ Payment saved for ${slotLabel}${partialNote}!`);
     }
 
     closeModal('paymentModal');
