@@ -118,14 +118,12 @@ async function loadMemberLedger(){
                     : (!isMember
                         ? `<input type="number" placeholder="—" data-gid="${grp.id}" data-idx="${slotIndex}" onchange="updateLedgerPayout(this)" style="width:72px;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);color:#a78bfa;border-radius:6px;padding:3px 6px;font-size:0.72rem;font-weight:700;text-align:center;outline:none;">`
                         : `<span style="color:var(--text-dim);">—</span>`);
-                // Joint chit: show partner's status even if I haven't paid yet
-                const partnerLine = coMember
-                    ? (coMonthPay
-                        ? `<div style="font-size:0.65rem;color:#34d399;margin-top:2px;">&#x2705; ${coMember.name.split(' ')[0]}: ${fmtAmt(parseFloat(coMonthPay.paid)||0)} on ${fmtDate(coMonthPay.date)}</div>`
-                        : `<div style="font-size:0.65rem;color:#f87171;margin-top:2px;">&#x23f3; ${coMember.name.split(' ')[0]}: pending</div>`)
+                // Joint chit: only show partner info if partner has actually paid this month
+                const partnerLine = (coMember && coMonthPay)
+                    ? `<div style="font-size:0.65rem;color:#34d399;margin-top:2px;">&#x2705; ${coMember.name.split(' ')[0]}: ${fmtAmt(parseFloat(coMonthPay.paid)||0)} on ${fmtDate(coMonthPay.date)}</div>`
                     : '';
-                const myPendingStatus = coMember && coMonthPay
-                    ? '<span style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);border-radius:5px;padding:2px 6px;font-size:0.62rem;font-weight:800;">&#x1f465; Partner paid</span>'
+                const myPendingStatus = (coMember && coMonthPay)
+                    ? '<span style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);border-radius:5px;padding:2px 6px;font-size:0.62rem;font-weight:800;">&#x1f465; Partner Paid / My Due</span>'
                     : statusBadge;
                 return `<tr style="${coMember&&coMonthPay?'background:rgba(99,102,241,0.04);border-left:2px solid rgba(99,102,241,0.3);':''}">
                     <td style="text-align:center;color:var(--text-dim);font-weight:700;font-size:0.7rem;">${slotIndex+1}</td>
@@ -178,29 +176,38 @@ async function loadMemberLedger(){
                     : (!isMember
                         ? `<input type="number" placeholder="—" data-gid="${grp.id}" data-idx="${slotIndex}" onchange="updateLedgerPayout(this)" style="width:72px;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);color:#a78bfa;border-radius:6px;padding:3px 6px;font-size:0.72rem;font-weight:700;text-align:center;outline:none;">`
                         : `<span style="color:var(--text-dim);">—</span>`);
-                // Joint co-member sub-line
-                const coSubLine = coMember ? (coMonthPay
-                    ? `<div style="font-size:0.65rem;color:#34d399;margin-top:3px;">Partner paid: ${fmtAmt(parseFloat(coMonthPay.paid)||0)} on ${fmtDate(coMonthPay.date)}</div>`
-                    : `<div style="font-size:0.65rem;color:#f87171;margin-top:3px;">Partner: pending</div>`
-                ) : '';
+                // Joint: combine both payments for balance calculation
+                const coPaidAmt = coMember && coMonthPay ? parseFloat(coMonthPay.paid)||0 : 0;
+                const totalPaidJoint = iPaid + coPaidAmt;
+                const jointBalance = coMember ? Math.max(0, chitAmount - totalPaidJoint) : iBal;
+                const bothPaid = coMember && coMonthPay && coPaidAmt > 0;
+
+                // Only show partner sub-line if partner actually paid
+                const coSubLine = (coMember && coMonthPay)
+                    ? `<div style="font-size:0.65rem;color:#34d399;margin-top:3px;">&#x2705; ${coMember.name.split(' ')[0]}: ${fmtAmt(coPaidAmt)} on ${fmtDate(coMonthPay.date)}</div>`
+                    : (coMember ? `<div style="font-size:0.65rem;color:#f87171;margin-top:3px;">&#x23f3; ${coMember.name.split(' ')[0]}: pending</div>` : '');
+
                 const jointBadge = coMember
-                    ? (coMonthPay
-                        ? `<span style="background:rgba(16,185,129,0.15);color:#34d399;border:1px solid rgba(16,185,129,0.3);border-radius:5px;padding:2px 6px;font-size:0.62rem;font-weight:800;">Both Paid</span>`
-                        : `<span style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);border-radius:5px;padding:2px 6px;font-size:0.62rem;font-weight:800;">Partner Pending</span>`)
+                    ? (bothPaid
+                        ? `<span style="background:rgba(16,185,129,0.15);color:#34d399;border:1px solid rgba(16,185,129,0.3);border-radius:5px;padding:2px 6px;font-size:0.62rem;font-weight:800;">&#x2705; Both Paid</span>`
+                        : `<span style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);border-radius:5px;padding:2px 6px;font-size:0.62rem;font-weight:800;">&#x23f3; Partner Pending</span>`)
                     : statusBadge;
+
+                const balDisplay = coMember
+                    ? (jointBalance > 0 ? fmtAmt(jointBalance) : '---')
+                    : (iBal > 0 ? fmtAmt(iBal) : '---');
+                const balColor = jointBalance > 0 ? '#f59e0b' : '#34d399';
+
                 return `<tr style="background:${rowBg};${rowBL}">
                         <td style="text-align:center;color:var(--text-dim);font-weight:700;font-size:0.7rem;">${slotIndex+1}</td>
                         <td style="color:${dateColor};font-weight:600;">${fmtDate(dueDate)}</td>
                         <td style="color:#c4b5fd;">${chitAmount>0?fmtAmt(chitAmount):'---'}</td>
-                        <td style="vertical-align:top;font-size:0.72rem;color:var(--text-dim);">
-                            ${fmtDate(pay.date)}
-                            ${coMember ? '<div style="font-size:0.6rem;color:#a5b4fc;margin-top:2px;">Joint chit</div>' : ''}
-                        </td>
+                        <td style="vertical-align:top;font-size:0.72rem;color:var(--text-dim);">${fmtDate(pay.date)}</td>
                         <td style="vertical-align:top;color:${isPaid?'#34d399':'#fbbf24'};font-weight:700;">
                             ${fmtAmt(iPaid)}${coSubLine}
                         </td>
                         <td style="vertical-align:middle;">${_poCellSingle}</td>
-                        <td style="vertical-align:middle;color:#f59e0b;">${iBal>0?fmtAmt(iBal):'---'}</td>
+                        <td style="vertical-align:middle;color:${balColor};">${balDisplay}</td>
                         <td style="vertical-align:middle;">${coMember ? jointBadge : statusBadge}</td>
                         <td style="vertical-align:middle;color:var(--text-dim);font-size:0.7rem;">${iMode}</td>
                         <td style="vertical-align:middle;">${chitPickedCell}</td>
