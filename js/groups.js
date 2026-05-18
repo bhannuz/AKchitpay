@@ -299,67 +299,104 @@ async function renderGroupsTab(){
         if(g.startDate||g.gStart){const _s=new Date(g.startDate||g.gStart),_n=new Date();elapsed=Math.max(0,Math.min(totalMonths,(_n.getFullYear()-_s.getFullYear())*12+(_n.getMonth()-_s.getMonth())+1));}
         const left=Math.max(0,totalMonths-elapsed);const pct=Math.min(100,Math.round(elapsed/totalMonths*100));
 
-        const expandedSlots=[];
-        gMs.forEach(m=>{
-            const enr=(m.enrollments||[]).find(e=>e.groupId===g.id);
-            const qty=enr?parseInt(enr.qty||1):1;
-            for(let q=0;q<qty;q++) expandedSlots.push({m,slotNum:q+1,totalSlots:qty});
+        // Build chit slots — joint pairs share ONE row
+        const seenJoint = new Set();
+        const expandedSlots = [];
+        gMs.forEach(m => {
+            const enr = (m.enrollments||[]).find(e=>e.groupId===g.id);
+            const qty = enr ? parseInt(enr.qty||1) : 1;
+            const coMid = enr && enr.coMemberId ? enr.coMemberId : '';
+            if(coMid) {
+                const pairKey = [m.id, coMid].sort().join('_');
+                if(!seenJoint.has(pairKey)) {
+                    seenJoint.add(pairKey);
+                    const coM = ms.find(x=>x.id===coMid);
+                    for(let q=0;q<qty;q++) expandedSlots.push({m, slotNum:q+1, totalSlots:qty, isJoint:true, coM, coMid});
+                }
+            } else {
+                for(let q=0;q<qty;q++) expandedSlots.push({m, slotNum:q+1, totalSlots:qty, isJoint:false, coM:null, coMid:''});
+            }
         });
-        const totalSlots=expandedSlots.length;
-        const memberRows=expandedSlots.map(({m,slotNum,totalSlots},i)=>{
-            const enr=(m.enrollments||[]).find(e=>e.groupId===g.id);
-            const memberQty=enr?parseInt(enr.qty||1):1; // per-member chit count
-            const allMp=ps.filter(p=>p.memberId===m.id&&p.groupId===g.id);
-            const mp=memberQty>1
-                ?allMp.filter(p=>{
+        const totalSlots = expandedSlots.length;
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        const memberRows = expandedSlots.map(({m, slotNum, totalSlots, isJoint, coM, coMid}, i) => {
+            const enr = (m.enrollments||[]).find(e=>e.groupId===g.id);
+            const memberQty = enr ? parseInt(enr.qty||1) : 1;
+            const allDD = getGroupDueDates(g);
+            const fixedAmt = g.amtType!=='variable'&&g.fixedAmt ? parseFloat(g.fixedAmt) : 0;
+
+            // My payments
+            const allMp = ps.filter(p=>p.memberId===m.id&&p.groupId===g.id);
+            const mp = memberQty>1
+                ? allMp.filter(p=>{
                     if(enr&&enr.enrollmentId&&p.enrollmentId) return p.enrollmentId===enr.enrollmentId&&(p.slotNum==null||p.slotNum===slotNum);
                     if(p.slotNum!=null) return p.slotNum===slotNum;
                     return slotNum===1;
-                })
-                :allMp;
-            const paid=mp.reduce((s,p)=>s+(parseFloat(p.paid)||0),0);
-            const rawBal=mp.reduce((s,p)=>s+(parseFloat(p.balance)||0),0);
-            // For fixed-amount groups: compute outstanding balance = (overdue unpaid months * fixedAmt) + any recorded balance
-            const fixedAmt=g.amtType!=='variable'&&g.fixedAmt?parseFloat(g.fixedAmt):0;
-            const allDD=getGroupDueDates(g);
-            const paidSlotNums=new Set();
-            mp.forEach(p=>{
-                if(Array.isArray(p.monthSlots))p.monthSlots.forEach(s=>paidSlotNums.add(s));
-                else if(p.monthSlot!=null)paidSlotNums.add(p.monthSlot);
+                }) : allMp;
+
+            // Co-member payments (joint)
+            const coMp = isJoint && coM ? ps.filter(p=>p.memberId===coMid&&p.groupId===g.id) : [];
+
+            // Combined paid = sum of both members
+            const myPaid  = mp.reduce((s,p)=>s+(parseFloat(p.paid)||0),0);
+            const coPaid  = coMp.reduce((s,p)=>s+(parseFloat(p.paid)||0),0);
+            const paid    = myPaid + coPaid;
+
+            // Combined balance = overdue unpaid months * fixedAmt (using union of paid slots)
+            const paidSlotNums = new Set();
+            [...mp, ...coMp].forEach(p=>{
+                if(Array.isArray(p.monthSlots)) p.monthSlots.forEach(s=>paidSlotNums.add(s));
+                else if(p.monthSlot!=null) paidSlotNums.add(p.monthSlot);
             });
-            const todayStr=new Date().toISOString().split('T')[0];
-            const unpaidOverdueMonths=fixedAmt>0?allDD.filter((d,idx)=>!paidSlotNums.has(idx)&&d<todayStr).length:0;
-            const bal=fixedAmt>0?(rawBal+(unpaidOverdueMonths*fixedAmt)):rawBal;
-            const pickedPay=mp.find(p=>p.chitPicked==='Yes');
-            const pickedAmt=pickedPay?(parseFloat(pickedPay.chit)||0)*(parseInt(pickedPay.numMonths)||1):0;
-            const pickedBy=pickedPay&&pickedPay.chitPickedBy?pickedPay.chitPickedBy:'';
-            // Count unique paid slots (not sum of numMonths) to avoid double-counting installments
-            const _paidSlots=new Set();
-            mp.forEach(p=>{
-                if(Array.isArray(p.monthSlots))p.monthSlots.forEach(s=>_paidSlots.add(s));
-                else if(p.monthSlot!=null)_paidSlots.add(p.monthSlot);
+            const unpaidOverdueMonths = fixedAmt>0 ? allDD.filter((d,idx)=>!paidSlotNums.has(idx)&&d<todayStr).length : 0;
+            const rawBal = [...mp,...coMp].reduce((s,p)=>s+(parseFloat(p.balance)||0),0);
+            const bal = fixedAmt>0 ? Math.max(0,(unpaidOverdueMonths*fixedAmt)) : Math.max(0,rawBal);
+
+            // Months covered = union of both members' paid slots
+            const _paidSlots = new Set();
+            [...mp,...coMp].forEach(p=>{
+                if(Array.isArray(p.monthSlots)) p.monthSlots.forEach(s=>_paidSlots.add(s));
+                else if(p.monthSlot!=null) _paidSlots.add(p.monthSlot);
                 else _paidSlots.add('pay_'+p.id);
             });
-            const monthsCovered=_paidSlots.size;
-            const multiChitBadge=totalSlots>1?`<span style="background:rgba(245,158,11,0.2);border:1px solid rgba(245,158,11,0.4);color:#fbbf24;border-radius:5px;padding:1px 6px;font-size:0.98rem;font-weight:800;margin-left:4px;">×${totalSlots} chits</span>`:'';
-            const slotLabel=totalSlots>1?`<span style="font-size:0.98rem;color:#f59e0b;"> (Chit ${slotNum})</span>`:'';
+            const monthsCovered = _paidSlots.size;
+
+            const pickedPay = [...mp,...coMp].find(p=>p.chitPicked==='Yes');
+            const pickedAmt = pickedPay?(parseFloat(pickedPay.chit)||0)*(parseInt(pickedPay.numMonths)||1):0;
+            const pickedBy  = pickedPay&&pickedPay.chitPickedBy?pickedPay.chitPickedBy:'';
+            const multiChitBadge = totalSlots>1?`<span style="background:rgba(245,158,11,0.2);border:1px solid rgba(245,158,11,0.4);color:#fbbf24;border-radius:5px;padding:1px 6px;font-size:0.98rem;font-weight:800;margin-left:4px;">x${totalSlots} chits</span>`:'';
+            const slotLabelBadge = totalSlots>1?`<span style="font-size:0.98rem;color:#f59e0b;"> (Chit ${slotNum})</span>`:'';
+
+            // Name cell — joint shows both names in one cell
+            const nameCell = isJoint && coM
+                ? `<td>
+                    <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+                        <strong>${m.name}</strong>
+                        <span style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;border-radius:5px;padding:1px 6px;font-size:0.7rem;font-weight:800;">&#x1f465; Joint</span>
+                        ${multiChitBadge}${slotLabelBadge}
+                    </div>
+                    <div style="font-size:0.78rem;color:var(--text-dim);">${m.phone||''}</div>
+                    <div style="font-size:0.8rem;color:#a5b4fc;margin-top:3px;border-top:1px solid rgba(99,102,241,0.2);padding-top:3px;">
+                        <strong>${coM.name}</strong>
+                        <span style="color:var(--text-dim);font-size:0.72rem;"> · ${coM.phone||''}</span>
+                    </div>
+                    <div style="font-size:0.68rem;color:var(--text-dim);margin-top:1px;">
+                        My paid: ${fmtAmt(myPaid)} &nbsp;|&nbsp; Partner paid: ${fmtAmt(coPaid)}
+                    </div>
+                  </td>`
+                : `<td><strong>${m.name}</strong>${multiChitBadge}${slotLabelBadge}<br><span style="font-size:0.92rem;color:var(--text-dim);">${m.phone||''}</span></td>`;
+
             return [
                 `<tr${pickedPay?' class="chit-picked"':''}>`,
                 `<td>${i+1}</td>`,
-(()=>{
-                    const enr2=(m.enrollments||[]).find(e=>e.groupId===g.id);
-                    const coMid=enr2&&enr2.coMemberId?enr2.coMemberId:'';
-                    const coM2=coMid?ms.find(x=>x.id===coMid):null;
-                    const jointBadge=coM2?`<span style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;border-radius:5px;padding:1px 6px;font-size:0.72rem;font-weight:800;margin-left:5px;">👥 Joint</span>`:'';
-                    const coLine=coM2?`<div style="font-size:0.78rem;color:#a5b4fc;margin-top:1px;">+ ${coM2.name}${coM2.phone?' · '+coM2.phone:''}</div>`:'';
-                    return `<td><strong>${m.name}</strong>${multiChitBadge}${slotLabel}${jointBadge}<br><span style="font-size:0.92rem;color:var(--text-dim);">${m.phone||''}</span>${coLine}</td>`;
-                })(),
+                nameCell,
                 `<td style="color:#34d399;">${fmtAmt(paid)}</td>`,
-                `<td style="color:#f59e0b;">${fmtAmt(bal)}</td>`,
+                `<td style="color:${bal>0?'#f59e0b':'#34d399'};">${bal>0?fmtAmt(bal):'—'}</td>`,
                 `<td style="color:#a5b4fc;font-size:1.05rem;">${monthsCovered}/${totalMonths}</td>`,
-(()=>{ const mComm=cs.find(c=>c.memberId===m.id&&c.groupId===g.id&&(c.slotNum==null?1:c.slotNum)===slotNum); const commVal=mComm?mComm.targetMonth:0; const commId=mComm?mComm.id:''; return '<td><input type="number" min="0" max="'+totalMonths+'" value="'+(commVal||'')+'" placeholder="—" data-mid="'+m.id+'" data-gid="'+g.id+'" data-slot="'+slotNum+'" data-commid="'+commId+'" onchange="updateGroupCommitment(this)" style="width:60px;background:rgba(155,89,182,0.1);border:1px solid rgba(155,89,182,0.3);color:#bb86fc;border-radius:7px;padding:4px 6px;font-size:0.78rem;font-weight:800;text-align:center;outline:none;" title="Commitment month for this slot"></td>'; })(),
+                (()=>{ const mComm=cs.find(c=>c.memberId===m.id&&c.groupId===g.id&&(c.slotNum==null?1:c.slotNum)===slotNum); const commVal=mComm?mComm.targetMonth:0; const commId=mComm?mComm.id:''; return '<td><input type="number" min="0" max="'+totalMonths+'" value="'+(commVal||'')+'" placeholder="—" data-mid="'+m.id+'" data-gid="'+g.id+'" data-slot="'+slotNum+'" data-commid="'+commId+'" onchange="updateGroupCommitment(this)" style="width:60px;background:rgba(155,89,182,0.1);border:1px solid rgba(155,89,182,0.3);color:#bb86fc;border-radius:7px;padding:4px 6px;font-size:0.78rem;font-weight:800;text-align:center;outline:none;" title="Commitment month for this slot"></td>'; })(),
                 `<td>${pickedPay
-                    ?`<div><span class="chit-yes-badge">✅ Picked</span><div style="color:#34d399;font-weight:800;font-size:0.92rem;margin-top:3px;">${fmtAmt(pickedAmt)}</div>${pickedBy?`<div style="font-size:0.98rem;color:var(--text-dim);">by ${pickedBy}</div>`:''}</div>`
+                    ?`<div><span class="chit-yes-badge">&#x2705; Picked</span><div style="color:#34d399;font-weight:800;font-size:0.92rem;margin-top:3px;">${fmtAmt(pickedAmt)}</div>${pickedBy?`<div style="font-size:0.98rem;color:var(--text-dim);">by ${pickedBy}</div>`:''}</div>`
                     :'<span class="chit-no">—</span>'}</td>`,
                 `<td><button class="btn-edit-sm" onclick="openEditMember('${m.id}')">✏️</button></td>`,
                 `</tr>`
@@ -460,4 +497,4 @@ function toggleLedgerTable(id, header){
     if(chevron)chevron.style.transform=isOpen?'rotate(0deg)':'rotate(90deg)';
 }
 
-// ═════════════════════════════════════════
+// ══════════════════════════════════════════
