@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -551,22 +551,6 @@
             <span style="color:var(--text-dim);margin-left:12px;">Balance:</span>
             <span id="totalBalVal" style="color:#f59e0b;font-weight:700;margin-left:6px;"></span>
         </div>
-        <!-- CO-PAYER / SPLIT PAYMENT SECTION -->
-        <div style="margin-bottom:4px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-                <label class="form-label-small" style="margin-bottom:0;">👥 Split Payment?</label>
-                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:0.88rem;font-weight:700;color:#a5b4fc;">
-                    <input type="checkbox" id="splitPayToggle" onchange="toggleSplitPay()" style="width:15px;height:15px;cursor:pointer;accent-color:#6366f1;">
-                    2 members sharing this chit
-                </label>
-            </div>
-            <div id="coPayerSection" style="display:none;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);border-radius:12px;padding:12px 14px;margin-bottom:10px;">
-                <div style="font-size:0.8rem;color:var(--text-dim);margin-bottom:10px;">Enter each member's contribution. Total must match the amount paid above.</div>
-                <div id="coPayerRows"></div>
-                <div id="coPayerTotal" style="display:none;margin-top:8px;padding:7px 10px;background:rgba(0,0,0,0.2);border-radius:8px;font-size:0.88rem;font-weight:800;"></div>
-            </div>
-        </div>
-
         <label class="form-label-small">Paid By</label>
         <select id="pPaidBy" class="form-input">
             <option value="">-- Select Mode --</option>
