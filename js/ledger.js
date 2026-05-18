@@ -1,6 +1,6 @@
-// ══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // AK Chit Funds — MEMBER LEDGER - FLAT PAYMENT LIST
-// ══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════
 // HELPER FUNCTION - Get ordinal text (1st, 2nd, 3rd, 5th, etc.)
@@ -118,39 +118,24 @@ async function loadMemberLedger(){
                     : (!isMember
                         ? `<input type="number" placeholder="—" data-gid="${grp.id}" data-idx="${slotIndex}" onchange="updateLedgerPayout(this)" style="width:72px;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);color:#a78bfa;border-radius:6px;padding:3px 6px;font-size:0.72rem;font-weight:700;text-align:center;outline:none;">`
                         : `<span style="color:var(--text-dim);">—</span>`);
-                // Joint: co-member paid this slot but I haven't yet
-                if(coMember && coMonthPay) {
-                    const coPaid = parseFloat(coMonthPay.paid)||0;
-                    return `<tr style="background:rgba(99,102,241,0.06);border-left:3px solid rgba(99,102,241,0.4);">
-                        <td style="text-align:center;color:var(--text-dim);font-weight:700;font-size:0.7rem;">${slotIndex+1}</td>
-                        <td style="color:${isOverdue?'#f87171':'#c7d2fe'};font-weight:600;">${fmtDate(dueDate)}</td>
-                        <td style="color:#c4b5fd;">${chitAmount>0?fmtAmt(chitAmount):'---'}</td>
-                        <td style="vertical-align:top;">
-                            <div style="font-size:0.72rem;color:#34d399;">${fmtDate(coMonthPay.date)}</div>
-                            <div style="font-size:0.65rem;color:#f87171;margin-top:2px;">My payment: pending</div>
-                        </td>
-                        <td style="vertical-align:top;">
-                            <div style="color:#34d399;font-weight:700;">${fmtAmt(coPaid)}</div>
-                            <div style="margin-top:3px;"><span style="background:rgba(99,102,241,0.18);border:1px solid rgba(99,102,241,0.4);color:#a5b4fc;border-radius:5px;padding:1px 6px;font-size:0.62rem;font-weight:800;">Partner paid</span></div>
-                            <div style="font-size:0.65rem;color:#f87171;margin-top:2px;">My share: pending</div>
-                        </td>
-                        <td style="vertical-align:middle;">${_poCellPend}</td>
-                        <td style="vertical-align:middle;color:var(--text-dim);">---</td>
-                        <td style="vertical-align:middle;"><span style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);border-radius:5px;padding:2px 6px;font-size:0.62rem;font-weight:800;">Partner Paid / Pending Me</span></td>
-                        <td style="vertical-align:middle;color:var(--text-dim);font-size:0.7rem;">${coMonthPay.paidBy||'---'}</td>
-                        <td style="vertical-align:middle;">${commitmentBadge}</td>
-                        <td style="vertical-align:middle;"></td>
-                    </tr>`;
-                }
-                return `<tr style="">
+                // Joint chit: show partner's status even if I haven't paid yet
+                const partnerLine = coMember
+                    ? (coMonthPay
+                        ? `<div style="font-size:0.65rem;color:#34d399;margin-top:2px;">&#x2705; ${coMember.name.split(' ')[0]}: ${fmtAmt(parseFloat(coMonthPay.paid)||0)} on ${fmtDate(coMonthPay.date)}</div>`
+                        : `<div style="font-size:0.65rem;color:#f87171;margin-top:2px;">&#x23f3; ${coMember.name.split(' ')[0]}: pending</div>`)
+                    : '';
+                const myPendingStatus = coMember && coMonthPay
+                    ? '<span style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);border-radius:5px;padding:2px 6px;font-size:0.62rem;font-weight:800;">&#x1f465; Partner paid</span>'
+                    : statusBadge;
+                return `<tr style="${coMember&&coMonthPay?'background:rgba(99,102,241,0.04);border-left:2px solid rgba(99,102,241,0.3);':''}">
                     <td style="text-align:center;color:var(--text-dim);font-weight:700;font-size:0.7rem;">${slotIndex+1}</td>
                     <td style="color:${isOverdue?'#f87171':'#c7d2fe'};font-weight:600;">${fmtDate(dueDate)}</td>
                     <td style="color:#c4b5fd;">${chitAmount>0?fmtAmt(chitAmount):'---'}</td>
-                    <td style="vertical-align:middle;color:var(--text-dim);font-size:0.7rem;">---</td>
-                    <td style="vertical-align:middle;color:var(--text-dim);font-weight:700;">---</td>
+                    <td style="vertical-align:top;color:var(--text-dim);font-size:0.7rem;">---${partnerLine}</td>
+                    <td style="vertical-align:top;color:var(--text-dim);font-weight:700;">---</td>
                     <td style="vertical-align:middle;">${_poCellPend}</td>
                     <td style="vertical-align:middle;color:var(--text-dim);">---</td>
-                    <td style="vertical-align:middle;">${statusBadge}</td>
+                    <td style="vertical-align:middle;">${myPendingStatus}</td>
                     <td style="vertical-align:middle;color:var(--text-dim);font-size:0.7rem;">---</td>
                     <td style="vertical-align:middle;">${commitmentBadge}</td>
                     <td style="vertical-align:middle;"></td>
@@ -494,16 +479,16 @@ async function loadMemberLedger(){
         const grp=gs.find(g=>g.id===enr.groupId); if(!grp) return '';
         const totalSlots = enr.qty || 1;
 
-        // Resolve co-member for joint chit
+        // Joint chit: find partner member + their payments
         const coMid = enr.coMemberId || '';
         const coMember = coMid ? ms.find(x=>x.id===coMid) : null;
         const coMemberPays = coMid ? ps.filter(p=>p.memberId===coMid&&p.groupId===grp.id) : [];
 
         const slotSections = [];
         for(let slotNum = 1; slotNum <= totalSlots; slotNum++) {
+            // My own payments for this slot (no filtering needed — each member pays independently)
             const slotPays = ps.filter(p => {
                 if(p.memberId !== mid || p.groupId !== grp.id) return false;
-                if(p.isJointMirror) return false; // exclude mirrors from primary ledger; they show via coMember lines
                 if(p.slotNum != null) return p.slotNum === slotNum;
                 return true;
             });
