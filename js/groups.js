@@ -350,10 +350,12 @@ async function renderGroupsTab(){
                 else if(p.monthSlot!=null) paidSlotNums.add(p.monthSlot);
             });
 
-            // Balance = (elapsed overdue months not yet paid by either) × chitAmt
-            const elapsedDDs = allDD.filter(d=>d<=todayStr);
-            const overdueUnpaid = elapsedDDs.filter((_,idx)=>!paidSlotNums.has(idx)).length;
+            // Balance = overdue months (by original slot index) not paid by either member
+            // Use original allDD index so paidSlotNums lookup is correct
             const chitAmt = fixedAmt>0 ? fixedAmt : (mp[0]?parseFloat(mp[0].chit)||0:(coMp[0]?parseFloat(coMp[0].chit)||0:0));
+            const overdueUnpaid = chitAmt>0
+                ? allDD.filter((d,idx)=>d<=todayStr && !paidSlotNums.has(idx)).length
+                : 0;
             const bal = overdueUnpaid * chitAmt;
 
             // Months covered = union of paid slots
