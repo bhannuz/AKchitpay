@@ -81,10 +81,11 @@ async function loadMemberLedger(){
         const tPaid        = slotPays.reduce((s,p)=>s+(parseFloat(p.paid)||0),0);
         const tBal         = slotPays.reduce((s,p)=>s+(parseFloat(p.balance)||0),0);
 
-        // Build table rows - FLAT LIST; joint slots show combined row
+        // Build table rows — joint slots show combined row
         const mergedRows = allDueDates.map((dueDate, slotIndex) => {
-            // ── Joint chit: find co-member's payment for this slot ──
+            // Co-member's payment for this slot (joint chit)
             const coMonthPay = coMember ? coMemberPays.find(p => {
+                if(p.isJointMirror) return false;
                 if(p.monthSlot != null) return p.monthSlot === slotIndex;
                 if(Array.isArray(p.monthSlots)) return p.monthSlots.includes(slotIndex);
                 return getMonthSlot(allDueDates, p.date) === slotIndex;
@@ -117,26 +118,26 @@ async function loadMemberLedger(){
                     : (!isMember
                         ? `<input type="number" placeholder="—" data-gid="${grp.id}" data-idx="${slotIndex}" onchange="updateLedgerPayout(this)" style="width:72px;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);color:#a78bfa;border-radius:6px;padding:3px 6px;font-size:0.72rem;font-weight:700;text-align:center;outline:none;">`
                         : `<span style="color:var(--text-dim);">—</span>`);
-                // Joint: if co-member already paid this slot, show joint pending row
+                // Joint: co-member paid this slot but I haven't yet
                 if(coMember && coMonthPay) {
                     const coPaid = parseFloat(coMonthPay.paid)||0;
                     return `<tr style="background:rgba(99,102,241,0.06);border-left:3px solid rgba(99,102,241,0.4);">
                         <td style="text-align:center;color:var(--text-dim);font-weight:700;font-size:0.7rem;">${slotIndex+1}</td>
                         <td style="color:${isOverdue?'#f87171':'#c7d2fe'};font-weight:600;">${fmtDate(dueDate)}</td>
-                        <td style="color:#c4b5fd;">${chitAmount>0?fmtAmt(chitAmount):'—'}</td>
+                        <td style="color:#c4b5fd;">${chitAmount>0?fmtAmt(chitAmount):'---'}</td>
                         <td style="vertical-align:top;">
                             <div style="font-size:0.72rem;color:#34d399;">${fmtDate(coMonthPay.date)}</div>
-                            <div style="font-size:0.65rem;color:var(--text-dim);">⏳ ${m.name.split(' ')[0]}: pending</div>
+                            <div style="font-size:0.65rem;color:#f87171;margin-top:2px;">My payment: pending</div>
                         </td>
                         <td style="vertical-align:top;">
                             <div style="color:#34d399;font-weight:700;">${fmtAmt(coPaid)}</div>
-                            <div style="margin-top:3px;"><span style="background:rgba(99,102,241,0.18);border:1px solid rgba(99,102,241,0.4);color:#a5b4fc;border-radius:5px;padding:1px 6px;font-size:0.62rem;font-weight:800;">👥 ${coMember.name.split(' ')[0]} paid</span></div>
-                            <div style="font-size:0.65rem;color:#f87171;margin-top:2px;">⏳ ${m.name.split(' ')[0]}: pending</div>
+                            <div style="margin-top:3px;"><span style="background:rgba(99,102,241,0.18);border:1px solid rgba(99,102,241,0.4);color:#a5b4fc;border-radius:5px;padding:1px 6px;font-size:0.62rem;font-weight:800;">Partner paid</span></div>
+                            <div style="font-size:0.65rem;color:#f87171;margin-top:2px;">My share: pending</div>
                         </td>
                         <td style="vertical-align:middle;">${_poCellPend}</td>
-                        <td style="vertical-align:middle;color:var(--text-dim);">—</td>
-                        <td style="vertical-align:middle;"><span style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);border-radius:5px;padding:2px 6px;font-size:0.62rem;font-weight:800;">👥 Joint Pending</span></td>
-                        <td style="vertical-align:middle;color:var(--text-dim);font-size:0.7rem;">${coMonthPay.paidBy||'—'}</td>
+                        <td style="vertical-align:middle;color:var(--text-dim);">---</td>
+                        <td style="vertical-align:middle;"><span style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);border-radius:5px;padding:2px 6px;font-size:0.62rem;font-weight:800;">Partner Paid / Pending Me</span></td>
+                        <td style="vertical-align:middle;color:var(--text-dim);font-size:0.7rem;">${coMonthPay.paidBy||'---'}</td>
                         <td style="vertical-align:middle;">${commitmentBadge}</td>
                         <td style="vertical-align:middle;"></td>
                     </tr>`;
@@ -144,13 +145,13 @@ async function loadMemberLedger(){
                 return `<tr style="">
                     <td style="text-align:center;color:var(--text-dim);font-weight:700;font-size:0.7rem;">${slotIndex+1}</td>
                     <td style="color:${isOverdue?'#f87171':'#c7d2fe'};font-weight:600;">${fmtDate(dueDate)}</td>
-                    <td style="color:#c4b5fd;">${chitAmount>0?fmtAmt(chitAmount):'—'}</td>
-                    <td style="vertical-align:middle;color:var(--text-dim);font-size:0.7rem;">—</td>
-                    <td style="vertical-align:middle;color:var(--text-dim);font-weight:700;">—</td>
+                    <td style="color:#c4b5fd;">${chitAmount>0?fmtAmt(chitAmount):'---'}</td>
+                    <td style="vertical-align:middle;color:var(--text-dim);font-size:0.7rem;">---</td>
+                    <td style="vertical-align:middle;color:var(--text-dim);font-weight:700;">---</td>
                     <td style="vertical-align:middle;">${_poCellPend}</td>
-                    <td style="vertical-align:middle;color:var(--text-dim);">—</td>
+                    <td style="vertical-align:middle;color:var(--text-dim);">---</td>
                     <td style="vertical-align:middle;">${statusBadge}</td>
-                    <td style="vertical-align:middle;color:var(--text-dim);font-size:0.7rem;">—</td>
+                    <td style="vertical-align:middle;color:var(--text-dim);font-size:0.7rem;">---</td>
                     <td style="vertical-align:middle;">${commitmentBadge}</td>
                     <td style="vertical-align:middle;"></td>
                 </tr>`;
@@ -192,34 +193,30 @@ async function loadMemberLedger(){
                     : (!isMember
                         ? `<input type="number" placeholder="—" data-gid="${grp.id}" data-idx="${slotIndex}" onchange="updateLedgerPayout(this)" style="width:72px;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);color:#a78bfa;border-radius:6px;padding:3px 6px;font-size:0.72rem;font-weight:700;text-align:center;outline:none;">`
                         : `<span style="color:var(--text-dim);">—</span>`);
-                // Joint: build co-member status sub-line
-                const coStatusLine = coMember ? (() => {
-                    if(coMonthPay) {
-                        const coAmt = parseFloat(coMonthPay.paid)||0;
-                        return `<div style="margin-top:3px;font-size:0.65rem;color:#34d399;">✅ ${coMember.name.split(' ')[0]}: ${fmtAmt(coAmt)} on ${fmtDate(coMonthPay.date)}</div>`;
-                    }
-                    return `<div style="margin-top:3px;font-size:0.65rem;color:#f87171;">⏳ ${coMember.name.split(' ')[0]}: Pending</div>`;
-                })() : '';
-                const jointStatusBadge = coMember
+                // Joint co-member sub-line
+                const coSubLine = coMember ? (coMonthPay
+                    ? `<div style="font-size:0.65rem;color:#34d399;margin-top:3px;">Partner paid: ${fmtAmt(parseFloat(coMonthPay.paid)||0)} on ${fmtDate(coMonthPay.date)}</div>`
+                    : `<div style="font-size:0.65rem;color:#f87171;margin-top:3px;">Partner: pending</div>`
+                ) : '';
+                const jointBadge = coMember
                     ? (coMonthPay
-                        ? `<span style="background:rgba(16,185,129,0.15);color:#34d399;border:1px solid rgba(16,185,129,0.3);border-radius:5px;padding:2px 6px;font-size:0.62rem;font-weight:800;">✅ Joint Paid</span>`
-                        : `<span style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);border-radius:5px;padding:2px 6px;font-size:0.62rem;font-weight:800;">👥 Joint Pending</span>`)
+                        ? `<span style="background:rgba(16,185,129,0.15);color:#34d399;border:1px solid rgba(16,185,129,0.3);border-radius:5px;padding:2px 6px;font-size:0.62rem;font-weight:800;">Both Paid</span>`
+                        : `<span style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);border-radius:5px;padding:2px 6px;font-size:0.62rem;font-weight:800;">Partner Pending</span>`)
                     : statusBadge;
                 return `<tr style="background:${rowBg};${rowBL}">
                         <td style="text-align:center;color:var(--text-dim);font-weight:700;font-size:0.7rem;">${slotIndex+1}</td>
                         <td style="color:${dateColor};font-weight:600;">${fmtDate(dueDate)}</td>
-                        <td style="color:#c4b5fd;">${chitAmount>0?fmtAmt(chitAmount):'—'}</td>
-                        <td style="vertical-align:top;">
-                            <div style="font-size:0.72rem;">${fmtDate(pay.date)}</div>
-                            ${coMember?`<div style="font-size:0.62rem;color:var(--text-dim);margin-top:1px;">👥 ${m.name.split(' ')[0]} + ${coMember.name.split(' ')[0]}</div>`:''}
+                        <td style="color:#c4b5fd;">${chitAmount>0?fmtAmt(chitAmount):'---'}</td>
+                        <td style="vertical-align:top;font-size:0.72rem;color:var(--text-dim);">
+                            ${fmtDate(pay.date)}
+                            ${coMember ? '<div style="font-size:0.6rem;color:#a5b4fc;margin-top:2px;">Joint chit</div>' : ''}
                         </td>
                         <td style="vertical-align:top;color:${isPaid?'#34d399':'#fbbf24'};font-weight:700;">
-                            ${fmtAmt(iPaid)}${buildSplitBadge(pay,ms)}
-                            ${coStatusLine}
+                            ${fmtAmt(iPaid)}${coSubLine}
                         </td>
                         <td style="vertical-align:middle;">${_poCellSingle}</td>
-                        <td style="vertical-align:middle;color:#f59e0b;">${iBal>0?fmtAmt(iBal):'—'}</td>
-                        <td style="vertical-align:middle;">${coMember?jointStatusBadge:statusBadge}</td>
+                        <td style="vertical-align:middle;color:#f59e0b;">${iBal>0?fmtAmt(iBal):'---'}</td>
+                        <td style="vertical-align:middle;">${coMember ? jointBadge : statusBadge}</td>
                         <td style="vertical-align:middle;color:var(--text-dim);font-size:0.7rem;">${iMode}</td>
                         <td style="vertical-align:middle;">${chitPickedCell}</td>
                         <td style="vertical-align:middle;">${editCell}</td>
@@ -284,7 +281,7 @@ async function loadMemberLedger(){
                     <td style="color:#fbbf24;font-weight:600;font-size:0.85rem;"></td>
                     <td style="color:#c4b5fd;"></td>
                     <td style="vertical-align:middle;color:#f59e0b;font-size:0.75rem;font-weight:700;">${fmtDate(pay.date)}</td>
-                    <td style="vertical-align:middle;color:#34d399;font-weight:700;">${fmtAmt(iPaid)}${buildSplitBadge(pay,ms)}</td>
+                    <td style="vertical-align:middle;color:#34d399;font-weight:700;">${fmtAmt(iPaid)}</td>
                     <td style="vertical-align:middle;color:var(--text-dim);">—</td>
                     <td style="vertical-align:middle;color:#f59e0b;">${iBal>0?fmtAmt(iBal):'—'}</td>
                     <td style="vertical-align:middle;">${iStatusBadge}</td>
@@ -383,7 +380,7 @@ async function loadMemberLedger(){
                         <div style="width:10px;height:10px;border-radius:50%;background:${s.dot};flex-shrink:0;box-shadow:0 0 6px ${s.dot};"></div>
                         <div style="min-width:0;">
                             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;">
-                                <span style="font-size:1rem;font-weight:900;color:${s.nameColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${grp.name}${labelBadge}${chitSlotBadge}${coMember?`<span style="background:rgba(99,102,241,0.18);border:1px solid rgba(99,102,241,0.4);color:#a5b4fc;border-radius:5px;padding:1px 7px;font-size:0.7rem;font-weight:800;margin-left:6px;">👥 Joint with ${coMember.name.split(' ')[0]}</span>`:''}</span>
+                                <span style="font-size:1rem;font-weight:900;color:${s.nameColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${grp.name}${labelBadge}${chitSlotBadge}${coMember?` <span style="background:rgba(99,102,241,0.18);border:1px solid rgba(99,102,241,0.4);color:#a5b4fc;border-radius:5px;padding:1px 7px;font-size:0.7rem;font-weight:800;">Joint with ${coMember.name.split(' ')[0]}</span>`:''}</span>
                                 <span style="font-size:0.6rem;background:${s.badgeBg};border:1px solid ${s.badgeBorder};color:${s.badgeColor};border-radius:5px;padding:1px 7px;font-weight:800;">${s.badge}</span>
                                 ${groupLabel?`<span style="font-size:0.6rem;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-dim);border-radius:4px;padding:1px 6px;font-weight:700;">${groupLabel}</span>`:''}
                             </div>
@@ -506,6 +503,7 @@ async function loadMemberLedger(){
         for(let slotNum = 1; slotNum <= totalSlots; slotNum++) {
             const slotPays = ps.filter(p => {
                 if(p.memberId !== mid || p.groupId !== grp.id) return false;
+                if(p.isJointMirror) return false; // exclude mirrors from primary ledger; they show via coMember lines
                 if(p.slotNum != null) return p.slotNum === slotNum;
                 return true;
             });
@@ -632,17 +630,4 @@ function buildDueDateList(grp){
         dates.push(yr + '-' + pad(mo+1) + '-' + pad(day));
     }
     return dates;
-}
-
-function buildSplitBadge(pay, allMembers){
-    if(!pay.isSplit || !Array.isArray(pay.splitMembers)) return '';
-    const parts = pay.splitMembers.map(sp=>{
-        const m = allMembers.find(x=>x.id===sp.memberId);
-        const name = m ? m.name.split(' ')[0] : 'Member';
-        return `<span style="font-size:0.68rem;color:#c4b5fd;">${name}: ₹${(sp.amount||0).toLocaleString('en-IN')}</span>`;
-    }).join('<span style="color:var(--text-dim);margin:0 3px;">+</span>');
-    return `<div style="margin-top:3px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
-        <span style="background:rgba(139,92,246,0.18);border:1px solid rgba(139,92,246,0.4);color:#c4b5fd;border-radius:5px;padding:1px 6px;font-size:0.65rem;font-weight:800;">👥 Split</span>
-        ${parts}
-    </div>`;
 }
