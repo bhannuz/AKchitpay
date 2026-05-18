@@ -338,22 +338,25 @@ async function renderGroupsTab(){
             // Co-member payments (joint)
             const coMp = isJoint && coM ? ps.filter(p=>p.memberId===coMid&&p.groupId===g.id) : [];
 
-            // Combined paid = sum of both members
-            const myPaid  = mp.reduce((s,p)=>s+(parseFloat(p.paid)||0),0);
-            const coPaid  = coMp.reduce((s,p)=>s+(parseFloat(p.paid)||0),0);
-            const paid    = myPaid + coPaid;
+            // Individual paid amounts
+            const myPaid = mp.reduce((s,p)=>s+(parseFloat(p.paid)||0),0);
+            const coPaid = coMp.reduce((s,p)=>s+(parseFloat(p.paid)||0),0);
+            const paid   = myPaid + coPaid;
 
-            // Combined balance = overdue unpaid months * fixedAmt (using union of paid slots)
+            // Union of paid slots across both members
             const paidSlotNums = new Set();
             [...mp, ...coMp].forEach(p=>{
                 if(Array.isArray(p.monthSlots)) p.monthSlots.forEach(s=>paidSlotNums.add(s));
                 else if(p.monthSlot!=null) paidSlotNums.add(p.monthSlot);
             });
-            const unpaidOverdueMonths = fixedAmt>0 ? allDD.filter((d,idx)=>!paidSlotNums.has(idx)&&d<todayStr).length : 0;
-            const rawBal = [...mp,...coMp].reduce((s,p)=>s+(parseFloat(p.balance)||0),0);
-            const bal = fixedAmt>0 ? Math.max(0,(unpaidOverdueMonths*fixedAmt)) : Math.max(0,rawBal);
 
-            // Months covered = union of both members' paid slots
+            // Balance = (elapsed overdue months not yet paid by either) × chitAmt
+            const elapsedDDs = allDD.filter(d=>d<=todayStr);
+            const overdueUnpaid = elapsedDDs.filter((_,idx)=>!paidSlotNums.has(idx)).length;
+            const chitAmt = fixedAmt>0 ? fixedAmt : (mp[0]?parseFloat(mp[0].chit)||0:(coMp[0]?parseFloat(coMp[0].chit)||0:0));
+            const bal = overdueUnpaid * chitAmt;
+
+            // Months covered = union of paid slots
             const _paidSlots = new Set();
             [...mp,...coMp].forEach(p=>{
                 if(Array.isArray(p.monthSlots)) p.monthSlots.forEach(s=>_paidSlots.add(s));
@@ -368,7 +371,7 @@ async function renderGroupsTab(){
             const multiChitBadge = totalSlots>1?`<span style="background:rgba(245,158,11,0.2);border:1px solid rgba(245,158,11,0.4);color:#fbbf24;border-radius:5px;padding:1px 6px;font-size:0.98rem;font-weight:800;margin-left:4px;">x${totalSlots} chits</span>`:'';
             const slotLabelBadge = totalSlots>1?`<span style="font-size:0.98rem;color:#f59e0b;"> (Chit ${slotNum})</span>`:'';
 
-            // Name cell — joint shows both names in one cell
+            // ── Name cell ────────────────────────────────────────────────────
             const nameCell = isJoint && coM
                 ? `<td>
                     <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
@@ -376,23 +379,31 @@ async function renderGroupsTab(){
                         <span style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;border-radius:5px;padding:1px 6px;font-size:0.7rem;font-weight:800;">&#x1f465; Joint</span>
                         ${multiChitBadge}${slotLabelBadge}
                     </div>
-                    <div style="font-size:0.78rem;color:var(--text-dim);">${m.phone||''}</div>
-                    <div style="font-size:0.8rem;color:#a5b4fc;margin-top:3px;border-top:1px solid rgba(99,102,241,0.2);padding-top:3px;">
-                        <strong>${coM.name}</strong>
-                        <span style="color:var(--text-dim);font-size:0.72rem;"> · ${coM.phone||''}</span>
-                    </div>
-                    <div style="font-size:0.68rem;color:var(--text-dim);margin-top:1px;">
-                        My paid: ${fmtAmt(myPaid)} &nbsp;|&nbsp; Partner paid: ${fmtAmt(coPaid)}
+                    <div style="font-size:0.75rem;color:var(--text-dim);">${m.phone||''}</div>
+                    <div style="margin-top:4px;padding-top:4px;border-top:1px solid rgba(99,102,241,0.2);">
+                        <strong style="font-size:0.88rem;color:#c4b5fd;">${coM.name}</strong>
+                        <span style="font-size:0.72rem;color:var(--text-dim);"> · ${coM.phone||''}</span>
                     </div>
                   </td>`
                 : `<td><strong>${m.name}</strong>${multiChitBadge}${slotLabelBadge}<br><span style="font-size:0.92rem;color:var(--text-dim);">${m.phone||''}</span></td>`;
+
+            // ── Paid cell — stacked P1 / P2 for joint ───────────────────────
+            const paidCell = isJoint && coM
+                ? `<td>
+                    <div style="color:#34d399;font-weight:700;">${fmtAmt(myPaid)}</div>
+                    <div style="margin-top:4px;padding-top:4px;border-top:1px solid rgba(99,102,241,0.15);color:${coPaid>0?'#34d399':'#f87171'};font-weight:700;">${coPaid>0?fmtAmt(coPaid):'Pending'}</div>
+                  </td>`
+                : `<td style="color:#34d399;">${fmtAmt(paid)}</td>`;
+
+            // ── Balance cell — single combined balance ───────────────────────
+            const balCell = `<td style="color:${bal>0?'#f59e0b':'#34d399'};font-weight:700;">${bal>0?fmtAmt(bal):'—'}</td>`;
 
             return [
                 `<tr${pickedPay?' class="chit-picked"':''}>`,
                 `<td>${i+1}</td>`,
                 nameCell,
-                `<td style="color:#34d399;">${fmtAmt(paid)}</td>`,
-                `<td style="color:${bal>0?'#f59e0b':'#34d399'};">${bal>0?fmtAmt(bal):'—'}</td>`,
+                paidCell,
+                balCell,
                 `<td style="color:#a5b4fc;font-size:1.05rem;">${monthsCovered}/${totalMonths}</td>`,
                 (()=>{ const mComm=cs.find(c=>c.memberId===m.id&&c.groupId===g.id&&(c.slotNum==null?1:c.slotNum)===slotNum); const commVal=mComm?mComm.targetMonth:0; const commId=mComm?mComm.id:''; return '<td><input type="number" min="0" max="'+totalMonths+'" value="'+(commVal||'')+'" placeholder="—" data-mid="'+m.id+'" data-gid="'+g.id+'" data-slot="'+slotNum+'" data-commid="'+commId+'" onchange="updateGroupCommitment(this)" style="width:60px;background:rgba(155,89,182,0.1);border:1px solid rgba(155,89,182,0.3);color:#bb86fc;border-radius:7px;padding:4px 6px;font-size:0.78rem;font-weight:800;text-align:center;outline:none;" title="Commitment month for this slot"></td>'; })(),
                 `<td>${pickedPay
