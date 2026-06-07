@@ -92,30 +92,9 @@
             <div class="col-4"><div class="stat-card" onclick="openGroupsQuickView()" style="cursor:pointer;" title="View all groups"><span class="stat-num" id="groupCount">-</span><span class="stat-label">Groups</span></div></div>
             <div class="col-4"><div class="stat-card"><span class="stat-num text-success" id="todayColl">₹0</span><span class="stat-label">Today</span></div></div>
         </div>
-        <div id="adminActionBtns" style="margin-top:12px;">
-            <!-- Mode toggle -->
-            <div style="display:flex;background:var(--card-bg);border:1px solid var(--border);border-radius:14px;padding:4px;gap:4px;margin-bottom:8px;">
-                <button id="modeCreateBtn" onclick="setPaymentMode('create')"
-                    style="flex:1;padding:9px 8px;border:none;border-radius:10px;font-size:0.82rem;font-weight:800;cursor:pointer;background:rgba(243,156,18,0.85);color:#1a1a2e;transition:all .2s;">
-                    ✚ Create Payment
-                </button>
-                <button id="modeEditBtn" onclick="setPaymentMode('edit')"
-                    style="flex:1;padding:9px 8px;border:none;border-radius:10px;font-size:0.82rem;font-weight:800;cursor:pointer;background:transparent;color:var(--text-dim);transition:all .2s;">
-                    ✏️ Edit Payment
-                </button>
-            </div>
-            <!-- Create mode -->
-            <div id="modeCreatePanel">
-                <button class="btn btn-warning w-100 fw-bold shadow" onclick="openPaymentModal()" style="border-radius:16px;padding:15px;font-size:1.05rem;">💳 Record Payment</button>
-            </div>
-            <!-- Edit mode -->
-            <div id="modeEditPanel" style="display:none;background:var(--card-bg);border:1px solid var(--border);border-radius:16px;padding:14px;">
-                <div style="position:relative;">
-                    <input type="text" id="editPaySearch" class="form-input" style="margin-bottom:0;" placeholder="🔍 Search Member to Edit Payment..." oninput="filterEditPaySearch()">
-                    <div id="editPayMemberList" class="suggestions-list"></div>
-                </div>
-                <div id="editPayMemberPays" style="margin-top:10px;"></div>
-            </div>
+        <div id="adminActionBtns" style="display:flex;gap:8px;margin-top:12px;">
+            <button class="btn btn-warning w-100 fw-bold shadow" onclick="openPaymentModal()" style="border-radius:16px;padding:15px;font-size:1.05rem;">💳 Record Payment</button>
+
         </div>
 
         <!-- Admin-only quick action buttons — hidden by default, shown via JS for admin -->
@@ -629,12 +608,14 @@
             <span id="totalBalVal" style="color:#f59e0b;font-weight:700;margin-left:6px;"></span>
         </div>
         <label class="form-label-small">Paid By</label>
-        <select id="pPaidBy" class="form-input">
-            <option value="">-- Select Mode --</option>
-            <option>UPI</option><option>GPay</option><option>PhonePe</option>
-            <option>PPay</option><option>Bank Transfer</option><option>Cash</option><option>Cheque</option>
-        </select>
-        <label class="form-label-small">Chit Picked?</label>
+        <div style="display:flex;gap:6px;align-items:center;">
+            <div style="position:relative;flex:1;">
+                <input type="text" id="pPaidBy" class="form-input" style="margin-bottom:0;" placeholder="Select or type payment mode..." autocomplete="off" oninput="showPaidByDropdown('pPaidBy','pPaidByDrop')" onfocus="showPaidByDropdown('pPaidBy','pPaidByDrop')">
+                <div id="pPaidByDrop" style="display:none;position:absolute;z-index:200;width:100%;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.4);max-height:200px;overflow-y:auto;"></div>
+            </div>
+            <button type="button" onclick="openManagePaidBy('pPaidBy')" title="Edit options" style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.35);color:#a5b4fc;border-radius:10px;padding:11px 13px;font-size:0.9rem;cursor:pointer;flex-shrink:0;">⚙️</button>
+        </div>
+        <label class="form-label-small" style="margin-top:10px;">Chit Picked?</label>
         <select id="pChitPicked" class="form-input" onchange="toggleChitPickedName()">
             <option value="No">No</option>
             <option value="Yes">Yes ✅</option>
@@ -645,6 +626,22 @@
         </div>
         <button class="btn-save" onclick="savePayment()">✓ Sync Payment</button>
         <button class="btn-cancel" onclick="closeModal('paymentModal')">Cancel</button>
+    </div>
+</div>
+
+<!-- MANAGE PAID BY MODAL -->
+<div id="managePaidByModal" class="modal-overlay">
+    <div class="modal-content-custom" style="max-width:360px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div class="modal-title" style="margin-bottom:0;">⚙️ Manage Payment Modes</div>
+            <button onclick="closeModal('managePaidByModal')" style="background:none;border:none;color:var(--text-dim);font-size:1.3rem;cursor:pointer;">✕</button>
+        </div>
+        <div id="paidByOptionsList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px;max-height:260px;overflow-y:auto;"></div>
+        <div style="display:flex;gap:6px;">
+            <input type="text" id="newPaidByInput" class="form-input" style="margin-bottom:0;flex:1;" placeholder="Add new option..." onkeydown="if(event.key==='Enter')addPaidByOption()">
+            <button onclick="addPaidByOption()" style="background:rgba(16,185,129,0.2);border:1px solid rgba(16,185,129,0.4);color:#10b981;border-radius:10px;padding:10px 14px;font-size:0.9rem;font-weight:800;cursor:pointer;flex-shrink:0;">+ Add</button>
+        </div>
+        <button class="btn-save" style="margin-top:12px;" onclick="savePaidByOptions()">✓ Done</button>
     </div>
 </div>
 
@@ -670,12 +667,14 @@
         <label class="form-label-small">Balance (auto)</label>
         <input type="number" id="epBal" class="form-input" placeholder="Balance" readonly style="opacity:.7;">
         <label class="form-label-small">Paid By</label>
-        <select id="epPaidBy" class="form-input">
-            <option value="">-- Select Mode --</option>
-            <option>UPI</option><option>GPay</option><option>PhonePe</option>
-            <option>PPay</option><option>Bank Transfer</option><option>Cash</option><option>Cheque</option>
-        </select>
-        <label class="form-label-small">Chit Picked?</label>
+        <div style="display:flex;gap:6px;align-items:center;">
+            <div style="position:relative;flex:1;">
+                <input type="text" id="epPaidBy" class="form-input" style="margin-bottom:0;" placeholder="Select or type payment mode..." autocomplete="off" oninput="showPaidByDropdown('epPaidBy','epPaidByDrop')" onfocus="showPaidByDropdown('epPaidBy','epPaidByDrop')">
+                <div id="epPaidByDrop" style="display:none;position:absolute;z-index:200;width:100%;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.4);max-height:200px;overflow-y:auto;"></div>
+            </div>
+            <button type="button" onclick="openManagePaidBy('epPaidBy')" title="Edit options" style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.35);color:#a5b4fc;border-radius:10px;padding:11px 13px;font-size:0.9rem;cursor:pointer;flex-shrink:0;">⚙️</button>
+        </div>
+        <label class="form-label-small" style="margin-top:10px;">Chit Picked?</label>
         <select id="epChitPicked" class="form-input" onchange="epTogglePickedName()">
             <option value="No">No</option>
             <option value="Yes">Yes ✅</option>
