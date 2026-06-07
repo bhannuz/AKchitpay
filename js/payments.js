@@ -547,3 +547,95 @@ async function deletePayment(){
 }
 
 // ══════════════════════════════════════════
+
+// ── Home Tab: Create / Edit Mode Toggle ───────────────────
+let _paymentMode = 'create';
+
+function setPaymentMode(mode) {
+    _paymentMode = mode;
+    const cBtn = document.getElementById('modeCreateBtn');
+    const eBtn = document.getElementById('modeEditBtn');
+    const cPanel = document.getElementById('modeCreatePanel');
+    const ePanel = document.getElementById('modeEditPanel');
+    if (!cBtn) return;
+
+    if (mode === 'create') {
+        cBtn.style.background = 'rgba(243,156,18,0.85)';
+        cBtn.style.color = '#1a1a2e';
+        eBtn.style.background = 'transparent';
+        eBtn.style.color = 'var(--text-dim)';
+        cPanel.style.display = '';
+        ePanel.style.display = 'none';
+    } else {
+        eBtn.style.background = 'rgba(99,102,241,0.85)';
+        eBtn.style.color = 'white';
+        cBtn.style.background = 'transparent';
+        cBtn.style.color = 'var(--text-dim)';
+        cPanel.style.display = 'none';
+        ePanel.style.display = '';
+        const searchEl = document.getElementById('editPaySearch');
+        if (searchEl) searchEl.focus();
+    }
+}
+
+async function filterEditPaySearch() {
+    const query = document.getElementById('editPaySearch').value.toLowerCase().trim();
+    const listEl = document.getElementById('editPayMemberList');
+    const paysEl = document.getElementById('editPayMemberPays');
+    listEl.innerHTML = '';
+    paysEl.innerHTML = '';
+    if (!query) { listEl.style.display = 'none'; return; }
+
+    const filtered = ALL_MEMBERS.filter(m => m.name.toLowerCase().includes(query));
+    if (!filtered.length) { listEl.style.display = 'none'; return; }
+
+    listEl.style.display = 'block';
+    filtered.slice(0, 8).forEach(m => {
+        const div = document.createElement('div');
+        div.className = 'suggestion-item';
+        div.innerText = m.name;
+        div.onclick = () => {
+            listEl.style.display = 'none';
+            document.getElementById('editPaySearch').value = m.name;
+            loadEditPayList(m.id, m.name);
+        };
+        listEl.appendChild(div);
+    });
+}
+
+async function loadEditPayList(memberId, memberName) {
+    const paysEl = document.getElementById('editPayMemberPays');
+    paysEl.innerHTML = `<div style="color:var(--text-dim);font-size:0.8rem;text-align:center;padding:8px;">Loading…</div>`;
+
+    const pays = (await getCollection('payments'))
+        .filter(p => p.memberId === memberId)
+        .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+    if (!pays.length) {
+        paysEl.innerHTML = `<div style="color:var(--text-dim);font-size:0.82rem;text-align:center;padding:10px;">No payments found for ${memberName}</div>`;
+        return;
+    }
+
+    const groups = await getCollection('groups');
+    const rows = pays.slice(0, 20).map(p => {
+        const g = groups.find(x => x.id === p.groupId);
+        const gName = g ? g.name : (p.groupId || '—');
+        const bal = parseFloat(p.balance) || 0;
+        return `<div onclick="openEditPayment('${p.id}')" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;cursor:pointer;transition:background .15s;" onmouseenter="this.style.background='rgba(99,102,241,0.1)'" onmouseleave="this.style.background='var(--input-bg)'">
+            <div>
+                <div style="font-size:0.82rem;font-weight:700;color:var(--text-primary);">${gName}</div>
+                <div style="font-size:0.7rem;color:var(--text-dim);">${p.date || '—'} · ${p.paidBy || '—'}</div>
+            </div>
+            <div style="text-align:right;">
+                <div style="font-size:0.85rem;font-weight:800;color:#10b981;">${fmtAmt(parseFloat(p.paid)||0)}</div>
+                ${bal > 0 ? `<div style="font-size:0.68rem;color:#ef4444;">Bal ${fmtAmt(bal)}</div>` : ''}
+            </div>
+            <div style="margin-left:8px;color:#a5b4fc;font-size:0.75rem;">✏️</div>
+        </div>`;
+    }).join('');
+
+    paysEl.innerHTML = `
+        <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:8px;padding:0 2px;">${memberName} · ${pays.length} payment${pays.length!==1?'s':''} — tap to edit</div>
+        ${rows}
+        ${pays.length > 20 ? `<div style="text-align:center;font-size:0.72rem;color:var(--text-dim);padding:4px;">Showing latest 20 of ${pays.length}</div>` : ''}`;
+}
