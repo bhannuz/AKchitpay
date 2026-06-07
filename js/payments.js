@@ -548,94 +548,110 @@ async function deletePayment(){
 
 // ══════════════════════════════════════════
 
-// ── Home Tab: Create / Edit Mode Toggle ───────────────────
-let _paymentMode = 'create';
 
-function setPaymentMode(mode) {
-    _paymentMode = mode;
-    const cBtn = document.getElementById('modeCreateBtn');
-    const eBtn = document.getElementById('modeEditBtn');
-    const cPanel = document.getElementById('modeCreatePanel');
-    const ePanel = document.getElementById('modeEditPanel');
-    if (!cBtn) return;
+// ── Paid By: Editable Combo Dropdown ──────────────────────
+const DEFAULT_PAID_BY = ['UPI','GPay','PhonePe','PPay','Bank Transfer','Cash','Cheque'];
+let _paidByOptions = null;
+let _managingFor = null; // which input id triggered manage modal
 
-    if (mode === 'create') {
-        cBtn.style.background = 'rgba(243,156,18,0.85)';
-        cBtn.style.color = '#1a1a2e';
-        eBtn.style.background = 'transparent';
-        eBtn.style.color = 'var(--text-dim)';
-        cPanel.style.display = '';
-        ePanel.style.display = 'none';
-    } else {
-        eBtn.style.background = 'rgba(99,102,241,0.85)';
-        eBtn.style.color = 'white';
-        cBtn.style.background = 'transparent';
-        cBtn.style.color = 'var(--text-dim)';
-        cPanel.style.display = 'none';
-        ePanel.style.display = '';
-        const searchEl = document.getElementById('editPaySearch');
-        if (searchEl) searchEl.focus();
-    }
+function getPaidByOptions() {
+    if (_paidByOptions) return _paidByOptions;
+    try {
+        const stored = localStorage.getItem('ak_paidby_options');
+        _paidByOptions = stored ? JSON.parse(stored) : [...DEFAULT_PAID_BY];
+    } catch(e) { _paidByOptions = [...DEFAULT_PAID_BY]; }
+    return _paidByOptions;
 }
 
-async function filterEditPaySearch() {
-    const query = document.getElementById('editPaySearch').value.toLowerCase().trim();
-    const listEl = document.getElementById('editPayMemberList');
-    const paysEl = document.getElementById('editPayMemberPays');
-    listEl.innerHTML = '';
-    paysEl.innerHTML = '';
-    if (!query) { listEl.style.display = 'none'; return; }
-
-    const filtered = ALL_MEMBERS.filter(m => m.name.toLowerCase().includes(query));
-    if (!filtered.length) { listEl.style.display = 'none'; return; }
-
-    listEl.style.display = 'block';
-    filtered.slice(0, 8).forEach(m => {
-        const div = document.createElement('div');
-        div.className = 'suggestion-item';
-        div.innerText = m.name;
-        div.onclick = () => {
-            listEl.style.display = 'none';
-            document.getElementById('editPaySearch').value = m.name;
-            loadEditPayList(m.id, m.name);
-        };
-        listEl.appendChild(div);
-    });
+function savePaidByToStorage() {
+    try { localStorage.setItem('ak_paidby_options', JSON.stringify(_paidByOptions)); } catch(e){}
 }
 
-async function loadEditPayList(memberId, memberName) {
-    const paysEl = document.getElementById('editPayMemberPays');
-    paysEl.innerHTML = `<div style="color:var(--text-dim);font-size:0.8rem;text-align:center;padding:8px;">Loading…</div>`;
+function showPaidByDropdown(inputId, dropId) {
+    const input = document.getElementById(inputId);
+    const drop  = document.getElementById(dropId);
+    if (!input || !drop) return;
 
-    const pays = (await getCollection('payments'))
-        .filter(p => p.memberId === memberId)
-        .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const q = input.value.toLowerCase().trim();
+    const opts = getPaidByOptions().filter(o => !q || o.toLowerCase().includes(q));
 
-    if (!pays.length) {
-        paysEl.innerHTML = `<div style="color:var(--text-dim);font-size:0.82rem;text-align:center;padding:10px;">No payments found for ${memberName}</div>`;
-        return;
+    if (!opts.length) { drop.style.display = 'none'; return; }
+
+    drop.innerHTML = opts.map(o =>
+        `<div onclick="selectPaidBy('${inputId}','${dropId}','${o.replace(/'/g,"\\'")}');event.stopPropagation();"
+              style="padding:10px 14px;font-size:0.85rem;font-weight:600;color:var(--text-primary);cursor:pointer;border-bottom:1px solid var(--border);"
+              onmouseenter="this.style.background='rgba(99,102,241,0.15)'"
+              onmouseleave="this.style.background=''">${o}</div>`
+    ).join('');
+    drop.style.display = 'block';
+
+    // Close on outside click
+    const close = (e) => {
+        if (!input.contains(e.target) && !drop.contains(e.target)) {
+            drop.style.display = 'none';
+            document.removeEventListener('click', close);
+        }
+    };
+    setTimeout(() => document.addEventListener('click', close), 50);
+}
+
+function selectPaidBy(inputId, dropId, value) {
+    document.getElementById(inputId).value = value;
+    document.getElementById(dropId).style.display = 'none';
+}
+
+function openManagePaidBy(inputId) {
+    _managingFor = inputId;
+    renderPaidByOptionsList();
+    openModal('managePaidByModal');
+}
+
+function renderPaidByOptionsList() {
+    const opts = getPaidByOptions();
+    const el = document.getElementById('paidByOptionsList');
+    if (!el) return;
+    el.innerHTML = opts.map((o, i) =>
+        `<div style="display:flex;align-items:center;gap:8px;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:8px 12px;">
+            <span style="flex:1;font-size:0.85rem;font-weight:600;color:var(--text-primary);">${o}</span>
+            <button onclick="movePaidByOption(${i},-1)" title="Move up" style="background:none;border:none;color:var(--text-dim);font-size:0.85rem;cursor:pointer;padding:2px 5px;" ${i===0?'disabled style="opacity:.3;"':''}>▲</button>
+            <button onclick="movePaidByOption(${i},1)" title="Move down" style="background:none;border:none;color:var(--text-dim);font-size:0.85rem;cursor:pointer;padding:2px 5px;" ${i===opts.length-1?'disabled style="opacity:.3;"':''}>▼</button>
+            <button onclick="deletePaidByOption(${i})" title="Delete" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#ef4444;border-radius:7px;padding:4px 9px;font-size:0.78rem;cursor:pointer;">✕</button>
+        </div>`
+    ).join('') || '<div style="color:var(--text-dim);font-size:0.8rem;text-align:center;">No options yet</div>';
+}
+
+function addPaidByOption() {
+    const input = document.getElementById('newPaidByInput');
+    const val = (input.value || '').trim();
+    if (!val) return;
+    const opts = getPaidByOptions();
+    if (opts.some(o => o.toLowerCase() === val.toLowerCase())) {
+        showToast('⚠️ Option already exists', false); return;
     }
+    opts.push(val);
+    _paidByOptions = opts;
+    input.value = '';
+    renderPaidByOptionsList();
+}
 
-    const groups = await getCollection('groups');
-    const rows = pays.slice(0, 20).map(p => {
-        const g = groups.find(x => x.id === p.groupId);
-        const gName = g ? g.name : (p.groupId || '—');
-        const bal = parseFloat(p.balance) || 0;
-        return `<div onclick="openEditPayment('${p.id}')" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;cursor:pointer;transition:background .15s;" onmouseenter="this.style.background='rgba(99,102,241,0.1)'" onmouseleave="this.style.background='var(--input-bg)'">
-            <div>
-                <div style="font-size:0.82rem;font-weight:700;color:var(--text-primary);">${gName}</div>
-                <div style="font-size:0.7rem;color:var(--text-dim);">${p.date || '—'} · ${p.paidBy || '—'}</div>
-            </div>
-            <div style="text-align:right;">
-                <div style="font-size:0.85rem;font-weight:800;color:#10b981;">${fmtAmt(parseFloat(p.paid)||0)}</div>
-                ${bal > 0 ? `<div style="font-size:0.68rem;color:#ef4444;">Bal ${fmtAmt(bal)}</div>` : ''}
-            </div>
-            <div style="margin-left:8px;color:#a5b4fc;font-size:0.75rem;">✏️</div>
-        </div>`;
-    }).join('');
+function deletePaidByOption(i) {
+    const opts = getPaidByOptions();
+    opts.splice(i, 1);
+    _paidByOptions = opts;
+    renderPaidByOptionsList();
+}
 
-    paysEl.innerHTML = `
-        <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:8px;padding:0 2px;">${memberName} · ${pays.length} payment${pays.length!==1?'s':''} — tap to edit</div>
-        ${rows}
-        ${pays.length > 20 ? `<div style="text-align:center;font-size:0.72rem;color:var(--text-dim);padding:4px;">Showing latest 20 of ${pays.length}</div>` : ''}`;
+function movePaidByOption(i, dir) {
+    const opts = getPaidByOptions();
+    const j = i + dir;
+    if (j < 0 || j >= opts.length) return;
+    [opts[i], opts[j]] = [opts[j], opts[i]];
+    _paidByOptions = opts;
+    renderPaidByOptionsList();
+}
+
+function savePaidByOptions() {
+    savePaidByToStorage();
+    closeModal('managePaidByModal');
+    showToast('✅ Payment modes saved!');
 }
