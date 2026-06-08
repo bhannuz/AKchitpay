@@ -284,10 +284,52 @@ async function renderCollectionsTab(){
     colArea.innerHTML = html || '<div style="text-align:center;color:var(--text-dim);padding:40px;">No data.</div>';
 }
 
+// ── Group Sort State ───────────────────────────────────────
+let _gsortKey = 'name';
+let _gsortDir = 1; // 1 = asc, -1 = desc
+
+function sortGroups(key) {
+    if (_gsortKey === key) { _gsortDir *= -1; } else { _gsortKey = key; _gsortDir = 1; }
+    // Update button styles
+    ['name','commitment','months'].forEach(k => {
+        const btn   = document.getElementById('gsort' + (k==='name'?'Name':k==='commitment'?'Commit':'Months'));
+        const arrow = document.getElementById('gsort' + (k==='name'?'Name':k==='commitment'?'Commit':'Months') + 'Arrow');
+        if (!btn || !arrow) return;
+        const active = k === key;
+        btn.style.background  = active ? 'rgba(99,102,241,0.25)' : 'var(--card-bg)';
+        btn.style.borderColor = active ? 'rgba(99,102,241,0.6)'  : 'var(--border)';
+        btn.style.color       = active ? '#a5b4fc' : 'var(--text-dim)';
+        arrow.textContent     = active ? (_gsortDir === 1 ? ' ↑' : ' ↓') : '';
+    });
+    renderGroupsTab();
+}
+
 async function renderGroupsTab(){
     _applyGroupsSubTabStyles();
+    // Ensure default sort arrow is shown
+    const defaultArrow = document.getElementById('gsortNameArrow');
+    if (defaultArrow && !defaultArrow.textContent) defaultArrow.textContent = ' ↑';
     const gs=await getCollection('groups');const ms=await getCollection('members');const ps=await getCollection('payments');const cs=await getCollection('memberCommitments');
     if(!gs.length){document.getElementById('groupListArea').innerHTML='<div style="text-align:center;color:var(--text-dim);padding:40px;">No groups yet.</div>';return;}
+
+    // ── Apply sort
+    gs.sort((a, b) => {
+        if (_gsortKey === 'name') {
+            return _gsortDir * (a.name||'').localeCompare(b.name||'');
+        }
+        if (_gsortKey === 'commitment') {
+            const ca = parseFloat(a.gAmt || a.chitAmt || 0);
+            const cb = parseFloat(b.gAmt || b.chitAmt || 0);
+            return _gsortDir * (ca - cb);
+        }
+        if (_gsortKey === 'months') {
+            const da = parseInt(a.duration || a.gDuration || 0);
+            const db = parseInt(b.duration || b.gDuration || 0);
+            return _gsortDir * (da - db);
+        }
+        return 0;
+    });
+
     document.getElementById('groupListArea').innerHTML=gs.map((g,gIdx)=>{
         const gMs=ms.filter(m=>(m.enrollments||[]).some(e=>e.groupId===g.id)||(m.groupIds||[]).includes(g.id));
         const gPays=ps.filter(p=>p.groupId===g.id);
