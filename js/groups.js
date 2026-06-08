@@ -284,6 +284,16 @@ async function renderCollectionsTab(){
     colArea.innerHTML = html || '<div style="text-align:center;color:var(--text-dim);padding:40px;">No data.</div>';
 }
 
+// ── Per-Group Member Sort State ────────────────────────────
+const _grpMemberSort = {}; // { [gid]: { key, dir } }
+
+function sortGroupMembers(gid, key) {
+    if (!_grpMemberSort[gid]) _grpMemberSort[gid] = { key: '', dir: 1 };
+    const s = _grpMemberSort[gid];
+    if (s.key === key) { s.dir *= -1; } else { s.key = key; s.dir = 1; }
+    renderGroupsTab();
+}
+
 // ── Group Sort State ───────────────────────────────────────
 let _gsortKey = 'name';
 let _gsortDir = 1; // 1 = asc, -1 = desc
@@ -361,6 +371,29 @@ async function renderGroupsTab(){
         });
         const totalSlots = expandedSlots.length;
         const todayStr = new Date().toISOString().split('T')[0];
+
+        // ── Per-group member sort
+        const gSort = _grpMemberSort[g.id];
+        if (gSort && gSort.key) {
+            expandedSlots.sort((a, b) => {
+                if (gSort.key === 'member') {
+                    return gSort.dir * (a.m.name||'').localeCompare(b.m.name||'');
+                }
+                if (gSort.key === 'months') {
+                    const allMpA = ps.filter(p=>p.memberId===a.m.id&&p.groupId===g.id);
+                    const allMpB = ps.filter(p=>p.memberId===b.m.id&&p.groupId===g.id);
+                    const sA = new Set(); allMpA.forEach(p=>{ if(Array.isArray(p.monthSlots))p.monthSlots.forEach(s=>sA.add(s)); else if(p.monthSlot!=null)sA.add(p.monthSlot); else sA.add('p'+p.id); });
+                    const sB = new Set(); allMpB.forEach(p=>{ if(Array.isArray(p.monthSlots))p.monthSlots.forEach(s=>sB.add(s)); else if(p.monthSlot!=null)sB.add(p.monthSlot); else sB.add('p'+p.id); });
+                    return gSort.dir * (sA.size - sB.size);
+                }
+                if (gSort.key === 'commitment') {
+                    const cA = cs.find(c=>c.memberId===a.m.id&&c.groupId===g.id);
+                    const cB = cs.find(c=>c.memberId===b.m.id&&c.groupId===g.id);
+                    return gSort.dir * ((cA?cA.targetMonth:0) - (cB?cB.targetMonth:0));
+                }
+                return 0;
+            });
+        }
 
         const memberRows = expandedSlots.map(({m, slotNum, totalSlots, isJoint, coM, coMid}, i) => {
             const enr = (m.enrollments||[]).find(e=>e.groupId===g.id);
@@ -490,7 +523,15 @@ async function renderGroupsTab(){
             <div class="group-body" id="${bodyId}" style="max-height:0px;opacity:0;margin-top:0;">
 
                 ${gMs.length?`<div class="table-wrap"><table class="table-custom">
-                    <thead><tr><th>#</th><th>Member</th><th>Paid</th><th>Balance</th><th>Months</th><th>Commitment</th><th>Chit Picked Amt</th><th></th></tr></thead>
+                    <thead><tr>
+                        <th>#</th>
+                        <th onclick="sortGroupMembers('${g.id}','member')" style="cursor:pointer;user-select:none;white-space:nowrap;">Member ${(gSort&&gSort.key==='member')?(gSort.dir===1?'↑':'↓'):'⇅'}</th>
+                        <th>Paid</th>
+                        <th>Balance</th>
+                        <th onclick="sortGroupMembers('${g.id}','months')" style="cursor:pointer;user-select:none;white-space:nowrap;">Months ${(gSort&&gSort.key==='months')?(gSort.dir===1?'↑':'↓'):'⇅'}</th>
+                        <th onclick="sortGroupMembers('${g.id}','commitment')" style="cursor:pointer;user-select:none;white-space:nowrap;">Commitment ${(gSort&&gSort.key==='commitment')?(gSort.dir===1?'↑':'↓'):'⇅'}</th>
+                        <th>Chit Picked Amt</th><th></th>
+                    </tr></thead>
                     <tbody>${memberRows}</tbody>
                 </table></div>`:'<div style="text-align:center;color:var(--text-dim);font-size:1rem;padding:10px;">No members yet</div>'}
             </div>
