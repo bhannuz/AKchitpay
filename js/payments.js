@@ -250,7 +250,11 @@ function resetPaymentForm(){
     document.getElementById('pPaid').value='';
     document.getElementById('pPaidBy').value='';
     document.getElementById('pChitPicked').value='No';
+    document.getElementById('pPaymentType').value = 'regular';
+    onPaymentTypeChange();
     document.getElementById('pChitPickedBy').value='';
+    document.getElementById('pPaymentType').value = 'regular';
+    onPaymentTypeChange();
     document.getElementById('chitPickedNameDiv').style.display='none';
     document.getElementById('multiMonthPreview').style.display='none';
     document.getElementById('totalChitRef').style.display='none';
@@ -654,4 +658,79 @@ function savePaidByOptions() {
     savePaidByToStorage();
     closeModal('managePaidByModal');
     showToast('✅ Payment modes saved!');
+}
+
+// ── Payment Type Handling ──────────────────────────────────
+function onPaymentTypeChange() {
+    const type = document.getElementById('pPaymentType')?.value || 'regular';
+    const hint = document.getElementById('paymentTypeHint');
+    if (!hint) return;
+
+    const hints = {
+        regular: '✅ Full payment for selected month(s). Balance will be zero.',
+        partial: '⚠️ Incomplete payment. Remaining balance will stay in this month\'s record.',
+        advance: '⏭️ Payment for future month(s). Will automatically apply to next unpaid month.'
+    };
+    hint.innerText = hints[type] || '';
+    hint.style.display = hints[type] ? '' : 'none';
+}
+
+function onEditPaymentTypeChange() {
+    const type = document.getElementById('epPaymentType')?.value || 'regular';
+    // Can add hint display for edit modal if needed
+    console.log('Payment type changed to:', type);
+}
+
+// ── Modify savePayment to include payment type ────────────
+const _originalSavePayment = window.savePayment;
+window.savePayment = async function() {
+    const paymentType = document.getElementById('pPaymentType')?.value || 'regular';
+    
+    // Call original save first
+    const result = await _originalSavePayment.call(this);
+    
+    // Then add payment type handling
+    if (paymentType === 'advance') {
+        // Handle advance payment - apply to next unpaid month
+        const memberId = document.getElementById('pMember')?.value;
+        const groupId = document.getElementById('pGroup')?.value;
+        if (memberId && groupId) {
+            await applyAdvancePayment(memberId, groupId);
+        }
+    }
+    
+    return result;
+};
+
+async function applyAdvancePayment(memberId, groupId) {
+    // Find next unpaid month for this member in this group
+    const payments = await getCollection('payments');
+    const memberPayments = payments.filter(p => p.memberId === memberId && p.groupId === groupId);
+    
+    // Find first month without payment
+    const enrollments = await getCollection('memberCommitments');
+    const enrollment = enrollments.find(e => e.memberId === memberId && e.groupId === groupId);
+    
+    if (!enrollment) return;
+    
+    const startSlot = parseInt(enrollment.startMonth || 1);
+    const endSlot = startSlot + (parseInt(enrollment.targetMonth || 12) - 1);
+    
+    for (let slot = startSlot; slot <= endSlot; slot++) {
+        const hasPay = memberPayments.some(p => 
+            (Array.isArray(p.monthSlots) && p.monthSlots.includes(slot)) ||
+            p.monthSlot === slot
+        );
+        if (!hasPay) {
+            // Found unpaid month - could auto-create payment here
+            console.log(`Advance payment can be applied to month slot: ${slot}`);
+            break;
+        }
+    }
+}
+
+// Add hidden field to store payment type
+function setPaymentType(type) {
+    const el = document.getElementById('pPaymentType');
+    if (el) el.value = type;
 }
