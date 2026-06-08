@@ -246,10 +246,14 @@ async function loadStatistics() {
     const totalCollected = payments.reduce((s, p) => s + (parseFloat(p.paid) || 0), 0);
     const totalBalance   = payments.reduce((s, p) => s + (parseFloat(p.balance) || 0), 0);
     const chitsPicked    = payments.filter(p => p.chitPicked === 'Yes').length;
+    const totalMembers   = new Set(payments.map(p => p.memberId)).size || members.length;
+    const pendingChits   = payments.filter(p => (p.chitPicked || 'No') === 'No').length;
     document.getElementById('statTotalCollected').innerText = fmtAmt(totalCollected);
     document.getElementById('statTotalBalance').innerText   = fmtAmt(totalBalance);
     document.getElementById('statTotalPayments').innerText  = payments.length;
     document.getElementById('statChitsPicked').innerText    = chitsPicked;
+    document.getElementById('statTotalMembers').innerText   = totalMembers;
+    document.getElementById('statPendingChits').innerText   = pendingChits;
 
     // ── Monthly bar chart (last 6 months in filtered data)
     const monthMap = {};
@@ -301,17 +305,16 @@ async function loadStatistics() {
         const pct = Math.max(2, Math.round((g.collected / maxG) * 100));
         const row = document.createElement('div');
         row.innerHTML = `
-            <div style="display:flex;justify-content:space-between;font-size:0.78rem;font-weight:700;margin-bottom:4px;">
-                <span style="color:var(--text-primary);">${g.name}</span>
-                <span style="color:#10b981;">${fmtAmt(g.collected)}</span>
+            <div style="display:flex;justify-content:space-between;font-size:0.62rem;font-weight:700;margin-bottom:1px;gap:4px;">
+                <span style="color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">${g.name}</span>
+                <span style="color:#10b981;flex-shrink:0;">${fmtAmt(g.collected)}</span>
             </div>
-            <div style="background:rgba(255,255,255,0.07);border-radius:4px;height:6px;overflow:hidden;margin-bottom:2px;">
-                <div style="background:linear-gradient(90deg,#6366f1,#10b981);width:${pct}%;height:100%;border-radius:4px;"></div>
-            </div>
-            <div style="font-size:0.65rem;color:var(--text-dim);">${g.mCount} member${g.mCount!==1?'s':''} · Balance ${fmtAmt(g.balance)}</div>`;
+            <div style="background:rgba(255,255,255,0.07);border-radius:2px;height:3px;overflow:hidden;margin-bottom:2px;">
+                <div style="background:linear-gradient(90deg,#6366f1,#10b981);width:${pct}%;height:100%;border-radius:2px;"></div>
+            </div>`;
         groupEl.appendChild(row);
     });
-    if (!groupTotals.length) groupEl.innerHTML = '<div style="color:var(--text-dim);font-size:0.8rem;text-align:center;">No data</div>';
+    if (!groupTotals.length) groupEl.innerHTML = '<div style="color:var(--text-dim);font-size:0.65rem;text-align:center;">No data</div>';
 
     // ── Payment mode chips
     const modeMap = {};
@@ -324,11 +327,11 @@ async function loadStatistics() {
         const pct   = Math.round((amt / modeTotal) * 100);
         const color = modeColors[i % modeColors.length];
         const chip  = document.createElement('div');
-        chip.style.cssText = `background:rgba(${hexToRgb(color)},0.15);border:1px solid ${color}44;border-radius:10px;padding:6px 12px;font-size:0.72rem;font-weight:700;`;
-        chip.innerHTML = `<span style="color:${color};">${mode}</span> <span style="color:var(--text-dim);">${pct}% · ${fmtAmt(amt)}</span>`;
+        chip.style.cssText = `background:rgba(${hexToRgb(color)},0.15);border:1px solid ${color}44;border-radius:8px;padding:3px 8px;font-size:0.62rem;font-weight:700;white-space:nowrap;`;
+        chip.innerHTML = `<span style="color:${color};">${mode}</span> <span style="color:var(--text-dim);">${pct}%</span>`;
         pieEl.appendChild(chip);
     });
-    if (!Object.keys(modeMap).length) pieEl.innerHTML = '<div style="color:var(--text-dim);font-size:0.8rem;">No data</div>';
+    if (!Object.keys(modeMap).length) pieEl.innerHTML = '<div style="color:var(--text-dim);font-size:0.65rem;">No data</div>';
 
     // ── Top members
     const memberTotals = members.map(m => {
@@ -344,16 +347,16 @@ async function loadStatistics() {
         const medals = ['🥇','🥈','🥉','4️⃣','5️⃣'];
         const row = document.createElement('div');
         row.innerHTML = `
-            <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:3px;">
-                <span style="color:var(--text-primary);font-weight:700;">${medals[i]} ${m.name}</span>
-                <span style="color:#f39c12;font-weight:800;">${fmtAmt(m.amt)}</span>
+            <div style="display:flex;justify-content:space-between;font-size:0.65rem;margin-bottom:1px;gap:4px;">
+                <span style="color:var(--text-primary);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">${medals[i]} ${m.name}</span>
+                <span style="color:#f39c12;font-weight:800;flex-shrink:0;">${fmtAmt(m.amt)}</span>
             </div>
-            <div style="background:rgba(255,255,255,0.07);border-radius:4px;height:5px;overflow:hidden;">
-                <div style="background:linear-gradient(90deg,#f39c12,#f59e0b);width:${pct}%;height:100%;border-radius:4px;"></div>
+            <div style="background:rgba(255,255,255,0.07);border-radius:2px;height:3px;overflow:hidden;margin-bottom:2px;">
+                <div style="background:linear-gradient(90deg,#f39c12,#f59e0b);width:${pct}%;height:100%;border-radius:2px;"></div>
             </div>`;
         topEl.appendChild(row);
     });
-    if (!memberTotals.length) topEl.innerHTML = '<div style="color:var(--text-dim);font-size:0.8rem;text-align:center;">No member data</div>';
+    if (!memberTotals.length) topEl.innerHTML = '<div style="color:var(--text-dim);font-size:0.65rem;text-align:center;">No data</div>';
 }
 
 // Stubs so other files don't error
