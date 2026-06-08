@@ -282,6 +282,21 @@
             <button id="grpSubGroups" onclick="switchGroupsSubTab('groups')" style="flex:1;padding:8px;border:none;border-radius:9px;font-size:0.8rem;font-weight:800;cursor:pointer;transition:all .2s;">📂 Groups</button>
             <button id="grpSubCollections" onclick="switchGroupsSubTab('collections')" style="flex:1;padding:8px;border:none;border-radius:9px;font-size:0.8rem;font-weight:800;cursor:pointer;transition:all .2s;">📅 Monthly Collection</button>
         </div>
+
+        <!-- Sort bar -->
+        <div id="groupSortBar" style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+            <span style="font-size:0.68rem;color:var(--text-dim);font-weight:700;text-transform:uppercase;letter-spacing:.4px;align-self:center;margin-right:2px;">Sort:</span>
+            <button id="gsortName" onclick="sortGroups('name')" style="display:flex;align-items:center;gap:3px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.35);color:#a5b4fc;border-radius:8px;padding:5px 10px;font-size:0.75rem;font-weight:700;cursor:pointer;">
+                A–Z <span id="gsortNameArrow"></span>
+            </button>
+            <button id="gsortCommit" onclick="sortGroups('commitment')" style="display:flex;align-items:center;gap:3px;background:var(--card-bg);border:1px solid var(--border);color:var(--text-dim);border-radius:8px;padding:5px 10px;font-size:0.75rem;font-weight:700;cursor:pointer;">
+                Commitment <span id="gsortCommitArrow"></span>
+            </button>
+            <button id="gsortMonths" onclick="sortGroups('months')" style="display:flex;align-items:center;gap:3px;background:var(--card-bg);border:1px solid var(--border);color:var(--text-dim);border-radius:8px;padding:5px 10px;font-size:0.75rem;font-weight:700;cursor:pointer;">
+                Months <span id="gsortMonthsArrow"></span>
+            </button>
+        </div>
+
         <div id="groupListArea" class="mt-2"></div>
         <div id="collectionsArea" style="display:none;"></div>
     </div>
@@ -467,22 +482,22 @@
             <input type="hidden" id="sfActiveMode">
             <input type="hidden" id="sfActiveChit">
             <input type="hidden" id="sfActiveMember">
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;">
-                <div class="stat-card" style="padding:12px 6px;text-align:center;">
-                    <div style="font-size:1.1rem;font-weight:900;color:#f39c12;" id="statTotalCollected">₹0</div>
-                    <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;margin-top:4px;line-height:1.2;">Total<br>Collected</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+                <div class="stat-card" style="padding:14px 10px;text-align:center;">
+                    <div style="font-size:1.3rem;font-weight:900;color:#f39c12;" id="statTotalCollected">₹0</div>
+                    <div style="font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;margin-top:4px;">Total Collected</div>
                 </div>
-                <div class="stat-card" style="padding:12px 6px;text-align:center;">
-                    <div style="font-size:1.1rem;font-weight:900;color:#ef4444;" id="statTotalBalance">₹0</div>
-                    <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;margin-top:4px;line-height:1.2;">Balance<br>Due</div>
+                <div class="stat-card" style="padding:14px 10px;text-align:center;">
+                    <div style="font-size:1.3rem;font-weight:900;color:#ef4444;" id="statTotalBalance">₹0</div>
+                    <div style="font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;margin-top:4px;">Balance Due</div>
                 </div>
-                <div class="stat-card" style="padding:12px 6px;text-align:center;">
-                    <div style="font-size:1.1rem;font-weight:900;color:#10b981;" id="statTotalPayments">0</div>
-                    <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;margin-top:4px;line-height:1.2;">Total<br>Payments</div>
+                <div class="stat-card" style="padding:14px 10px;text-align:center;">
+                    <div style="font-size:1.3rem;font-weight:900;color:#10b981;" id="statTotalPayments">0</div>
+                    <div style="font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;margin-top:4px;">Total Payments</div>
                 </div>
-                <div class="stat-card" style="padding:12px 6px;text-align:center;">
-                    <div style="font-size:1.1rem;font-weight:900;color:#a5b4fc;" id="statChitsPicked">0</div>
-                    <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;margin-top:4px;line-height:1.2;">Chits<br>Picked</div>
+                <div class="stat-card" style="padding:14px 10px;text-align:center;">
+                    <div style="font-size:1.3rem;font-weight:900;color:#a5b4fc;" id="statChitsPicked">0</div>
+                    <div style="font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;margin-top:4px;">Chits Picked</div>
                 </div>
             </div>
 
