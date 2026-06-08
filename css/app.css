@@ -98,18 +98,8 @@
         .nav-item { cursor:pointer; text-align:center; font-size:0.68rem; color:var(--text-dim); padding:4px 2px; flex:1; min-width:0; }
         .nav-item.active { color:#f39c12; }
         
-        /* ── DESKTOP: Cap width, keep bottom nav visible ── */
+        /* ── DESKTOP: Keep mobile layout, just ensure nav stays visible ── */
         @media (min-width:1024px) {
-            body { display:flex; justify-content:center; background:#04070f; }
-            .container {
-                max-width: 480px;
-                width: 100%;
-                position: relative;
-                min-height: 100vh;
-                background: var(--bg);
-                box-shadow: 0 0 60px rgba(0,0,0,0.6);
-            }
-            .nav-bar { width: 480px; left: 50%; transform: translateX(-50%); }
             .tab-nav-desktop { display: none; }
             .tab-content { margin-bottom: 80px !important; }
         }
