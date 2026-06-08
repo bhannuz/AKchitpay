@@ -288,9 +288,19 @@ async function renderCollectionsTab(){
 const _grpMemberSort = {}; // { [gid]: { key, dir } }
 
 function sortGroupMembers(gid, key) {
-    if (!_grpMemberSort[gid]) _grpMemberSort[gid] = { key: '', dir: 1 };
+    if (!_grpMemberSort[gid]) _grpMemberSort[gid] = { key: '', dir: 0 };
     const s = _grpMemberSort[gid];
-    if (s.key === key) { s.dir *= -1; } else { s.key = key; s.dir = 1; }
+    
+    if (s.key === key) {
+        // Same column: cycle dir: 1 (asc) → -1 (desc) → 0 (no sort) → 1 (asc)
+        if (s.dir === 0) { s.dir = 1; }
+        else if (s.dir === 1) { s.dir = -1; }
+        else { s.dir = 0; s.key = ''; }
+    } else {
+        // Different column: start with ascending (dir=1)
+        s.key = key;
+        s.dir = 1;
+    }
     renderGroupsTab();
 }
 
@@ -525,11 +535,11 @@ async function renderGroupsTab(){
                 ${gMs.length?`<div class="table-wrap"><table class="table-custom">
                     <thead><tr>
                         <th>#</th>
-                        <th onclick="sortGroupMembers('${g.id}','member')" style="cursor:pointer;user-select:none;white-space:nowrap;">Member ${(gSort&&gSort.key==='member')?(gSort.dir===1?'↑':'↓'):'⇅'}</th>
+                        <th onclick="sortGroupMembers('${g.id}','member')" style="cursor:pointer;user-select:none;white-space:nowrap;">Member ${(gSort&&gSort.key==='member')?(gSort.dir===1?'↑':gSort.dir===-1?'↓':'⇅'):'⇅'}</th>
                         <th>Paid</th>
                         <th>Balance</th>
-                        <th onclick="sortGroupMembers('${g.id}','months')" style="cursor:pointer;user-select:none;white-space:nowrap;">Months ${(gSort&&gSort.key==='months')?(gSort.dir===1?'↑':'↓'):'⇅'}</th>
-                        <th onclick="sortGroupMembers('${g.id}','commitment')" style="cursor:pointer;user-select:none;white-space:nowrap;">Commitment ${(gSort&&gSort.key==='commitment')?(gSort.dir===1?'↑':'↓'):'⇅'}</th>
+                        <th onclick="sortGroupMembers('${g.id}','months')" style="cursor:pointer;user-select:none;white-space:nowrap;">Months ${(gSort&&gSort.key==='months')?(gSort.dir===1?'↑':gSort.dir===-1?'↓':'⇅'):'⇅'}</th>
+                        <th onclick="sortGroupMembers('${g.id}','commitment')" style="cursor:pointer;user-select:none;white-space:nowrap;">Commitment ${(gSort&&gSort.key==='commitment')?(gSort.dir===1?'↑':gSort.dir===-1?'↓':'⇅'):'⇅'}</th>
                         <th>Chit Picked Amt</th><th></th>
                     </tr></thead>
                     <tbody>${memberRows}</tbody>
