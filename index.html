@@ -418,47 +418,55 @@
         <div id="bkStatsPanel">
             <!-- Filters -->
             <div class="stat-card" style="padding:12px 14px;margin-bottom:12px;">
-                <div style="font-size:0.7rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">🔍 Filters</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-                    <div>
-                        <div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:4px;">From Date</div>
-                        <input type="date" id="statFromDate" class="form-input" style="margin-bottom:0;font-size:0.8rem;padding:8px 10px;" onchange="loadStatistics()">
-                    </div>
-                    <div>
-                        <div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:4px;">To Date</div>
-                        <input type="date" id="statToDate" class="form-input" style="margin-bottom:0;font-size:0.8rem;padding:8px 10px;" onchange="loadStatistics()">
-                    </div>
+                <!-- Filter type selector -->
+                <div style="display:flex;gap:6px;align-items:center;">
+                    <select id="statFilterType" class="form-input" style="margin-bottom:0;font-size:0.82rem;padding:9px 10px;flex:1;" onchange="onStatFilterTypeChange()">
+                        <option value="">🔍 Add Filter...</option>
+                        <option value="group">🏦 Group</option>
+                        <option value="mode">💳 Payment Mode</option>
+                        <option value="chit">✅ Chit Picked</option>
+                        <option value="member">👤 Member</option>
+                    </select>
+                    <button onclick="clearStatFilters()" title="Clear all filters" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);color:#ef4444;border-radius:10px;padding:9px 12px;font-size:0.8rem;font-weight:800;cursor:pointer;flex-shrink:0;">✕ Clear</button>
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-                    <div>
-                        <div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:4px;">Group</div>
-                        <select id="statGroupFilter" class="form-input" style="margin-bottom:0;font-size:0.8rem;padding:8px 10px;" onchange="loadStatistics()">
-                            <option value="">All Groups</option>
+
+                <!-- Sub-filter inputs (shown based on selection) -->
+                <div id="statSubFilterWrap" style="display:none;margin-top:8px;">
+                    <!-- Group -->
+                    <div id="sfGroup" style="display:none;">
+                        <select id="statGroupFilter" class="form-input" style="margin-bottom:0;font-size:0.82rem;padding:9px 10px;" onchange="applyStatSubFilter()">
+                            <option value="">-- All Groups --</option>
                         </select>
                     </div>
-                    <div>
-                        <div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:4px;">Payment Mode</div>
-                        <select id="statModeFilter" class="form-input" style="margin-bottom:0;font-size:0.8rem;padding:8px 10px;" onchange="loadStatistics()">
-                            <option value="">All Modes</option>
+                    <!-- Payment Mode -->
+                    <div id="sfMode" style="display:none;">
+                        <select id="statModeFilter" class="form-input" style="margin-bottom:0;font-size:0.82rem;padding:9px 10px;" onchange="applyStatSubFilter()">
+                            <option value="">-- All Modes --</option>
                         </select>
                     </div>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                    <div>
-                        <div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:4px;">Chit Picked</div>
-                        <select id="statChitFilter" class="form-input" style="margin-bottom:0;font-size:0.8rem;padding:8px 10px;" onchange="loadStatistics()">
-                            <option value="">All</option>
+                    <!-- Chit Picked -->
+                    <div id="sfChit" style="display:none;">
+                        <select id="statChitFilter" class="form-input" style="margin-bottom:0;font-size:0.82rem;padding:9px 10px;" onchange="applyStatSubFilter()">
+                            <option value="">-- All --</option>
                             <option value="Yes">Picked ✅</option>
                             <option value="No">Not Picked</option>
                         </select>
                     </div>
-                    <div>
-                        <div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:4px;">Member</div>
-                        <input type="text" id="statMemberFilter" class="form-input" style="margin-bottom:0;font-size:0.8rem;padding:8px 10px;" placeholder="Name..." oninput="loadStatistics()">
+                    <!-- Member -->
+                    <div id="sfMember" style="display:none;">
+                        <input type="text" id="statMemberFilter" class="form-input" style="margin-bottom:0;font-size:0.82rem;padding:9px 10px;" placeholder="Type member name..." oninput="applyStatSubFilter()">
                     </div>
                 </div>
-                <button onclick="clearStatFilters()" style="width:100%;margin-top:10px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);color:#ef4444;padding:8px;border-radius:10px;font-size:0.75rem;font-weight:800;cursor:pointer;">✕ Clear Filters</button>
+
+                <!-- Active filter chips -->
+                <div id="statActiveFilters" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
             </div>
+
+            <!-- Hidden state holders (read by loadStatistics) -->
+            <input type="hidden" id="sfActiveGroup">
+            <input type="hidden" id="sfActiveMode">
+            <input type="hidden" id="sfActiveChit">
+            <input type="hidden" id="sfActiveMember">
             <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;">
                 <div class="stat-card" style="padding:12px 6px;text-align:center;">
                     <div style="font-size:1.1rem;font-weight:900;color:#f39c12;" id="statTotalCollected">₹0</div>
