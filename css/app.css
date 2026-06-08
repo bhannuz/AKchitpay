@@ -428,3 +428,26 @@
                 display:block !important;
             }
         }
+
+        /* ── Statistics 3-column grid - keep 3 columns on all screens ── */
+        div[style*="grid-template-columns:1fr 1fr 1fr"] {
+            grid-template-columns: 1fr 1fr 1fr !important;
+        }
+        @media (max-width:900px) {
+            div[style*="grid-template-columns:1fr 1fr 1fr"] {
+                grid-template-columns: 1fr 1fr 1fr !important;
+                gap: 6px !important;
+            }
+            div[style*="grid-template-columns:1fr 1fr 1fr"] > .stat-card {
+                padding: 10px 6px !important;
+            }
+        }
+        @media (max-width:480px) {
+            div[style*="grid-template-columns:1fr 1fr 1fr"] {
+                grid-template-columns: 1fr 1fr 1fr !important;
+                gap: 4px !important;
+            }
+            div[style*="grid-template-columns:1fr 1fr 1fr"] > .stat-card {
+                padding: 6px 3px !important;
+            }
+        }
