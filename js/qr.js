@@ -73,7 +73,7 @@ function qrLoadVersion(ver){
     document.getElementById('qr_upi').value          = ver.upi  || '';
     document.getElementById('qr_amt').value          = ver.amt  || '';
     document.getElementById('qr_note').value         = ver.note || '';
-    document.getElementById('qr_due').value          = ver.due  || '';
+    document.getElementById('qr_due').value = new Date().toISOString().split('T')[0];
 
     _qrSelectedMembers = Object.assign({}, ver.members||{});
     var container = document.getElementById('qr_selected_members');
@@ -104,7 +104,7 @@ function qrNewForm(){
     document.getElementById('qr_upi').value          = '';
     document.getElementById('qr_amt').value          = '';
     document.getElementById('qr_note').value         = '';
-    document.getElementById('qr_due').value          = '';
+    document.getElementById('qr_due').value = new Date().toISOString().split('T')[0];
     _qrSelectedMembers = {};
     var c = document.getElementById('qr_selected_members');
     if(c) c.innerHTML = '';
@@ -689,3 +689,71 @@ function generateQrForMember(){}
 function downloadQrForMember(){}
 function shareQrForMember(){}
 function onQrMonthChange(){}
+
+// ── Auto-set QR Due Date ──────────────────────────────────
+function setQrDueDate() {
+    const today = new Date();
+    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
+    const dateStr = nextMonth.toISOString().split('T')[0];
+    document.getElementById('qr_due').value = dateStr;
+}
+
+async function onQrGroupChange() {
+    const noteTxt = (document.getElementById('qr_note')?.value || '').toLowerCase().trim();
+    if (!noteTxt) return;
+
+    const groups = await getCollection('groups');
+    const matchedGroup = groups.find(g => (g.name || '').toLowerCase().includes(noteTxt) || noteTxt.includes((g.name || '').toLowerCase()));
+    
+    if (matchedGroup) {
+        // Auto-set due date to group's next due date
+        const today = new Date();
+        const dueDay = parseInt(matchedGroup.dueDay || 15);
+        const curMonth = today.getDate() >= dueDay ? today.getMonth() + 1 : today.getMonth();
+        const year = curMonth > 11 ? today.getFullYear() + 1 : today.getFullYear();
+        const dueDate = new Date(year, curMonth % 12, dueDay);
+        const dateStr = dueDate.toISOString().split('T')[0];
+        document.getElementById('qr_due').value = dateStr;
+    }
+}
+
+// ── Auto-update: When group name changes, fetch group's due date ────────
+async function onQrGroupChange() {
+    const noteTxt = (document.getElementById('qr_note')?.value || '').trim();
+    if (!noteTxt || noteTxt.length < 2) return;
+    
+    try {
+        const groups = await getCollection('groups');
+        if (!groups || !Array.isArray(groups)) return;
+        
+        // Find group that matches the entered text
+        const matchedGroup = groups.find(g => 
+            (g.name || '').toLowerCase().includes(noteTxt.toLowerCase()) ||
+            noteTxt.toLowerCase().includes((g.name || '').toLowerCase())
+        );
+        
+        if (matchedGroup && matchedGroup.dueDay) {
+            // Calculate next due date based on group's due day
+            const today = new Date();
+            const dueDay = parseInt(matchedGroup.dueDay) || 15;
+            
+            // If today is after due day, set to next month; otherwise this month
+            let month = today.getMonth();
+            let year = today.getFullYear();
+            
+            if (today.getDate() >= dueDay) {
+                month += 1;
+                if (month > 11) {
+                    month = 0;
+                    year += 1;
+                }
+            }
+            
+            const dueDate = new Date(year, month, dueDay);
+            const dateStr = dueDate.toISOString().split('T')[0];
+            document.getElementById('qr_due').value = dateStr;
+        }
+    } catch(e) {
+        // If group fetch fails, keep current due date
+    }
+}
