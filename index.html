@@ -416,7 +416,49 @@
 
         <!-- ── Statistics Sub-tab ── -->
         <div id="bkStatsPanel">
-            <!-- Summary cards -->
+            <!-- Filters -->
+            <div class="stat-card" style="padding:12px 14px;margin-bottom:12px;">
+                <div style="font-size:0.7rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">🔍 Filters</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                    <div>
+                        <div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:4px;">From Date</div>
+                        <input type="date" id="statFromDate" class="form-input" style="margin-bottom:0;font-size:0.8rem;padding:8px 10px;" onchange="loadStatistics()">
+                    </div>
+                    <div>
+                        <div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:4px;">To Date</div>
+                        <input type="date" id="statToDate" class="form-input" style="margin-bottom:0;font-size:0.8rem;padding:8px 10px;" onchange="loadStatistics()">
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                    <div>
+                        <div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:4px;">Group</div>
+                        <select id="statGroupFilter" class="form-input" style="margin-bottom:0;font-size:0.8rem;padding:8px 10px;" onchange="loadStatistics()">
+                            <option value="">All Groups</option>
+                        </select>
+                    </div>
+                    <div>
+                        <div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:4px;">Payment Mode</div>
+                        <select id="statModeFilter" class="form-input" style="margin-bottom:0;font-size:0.8rem;padding:8px 10px;" onchange="loadStatistics()">
+                            <option value="">All Modes</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                    <div>
+                        <div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:4px;">Chit Picked</div>
+                        <select id="statChitFilter" class="form-input" style="margin-bottom:0;font-size:0.8rem;padding:8px 10px;" onchange="loadStatistics()">
+                            <option value="">All</option>
+                            <option value="Yes">Picked ✅</option>
+                            <option value="No">Not Picked</option>
+                        </select>
+                    </div>
+                    <div>
+                        <div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:4px;">Member</div>
+                        <input type="text" id="statMemberFilter" class="form-input" style="margin-bottom:0;font-size:0.8rem;padding:8px 10px;" placeholder="Name..." oninput="loadStatistics()">
+                    </div>
+                </div>
+                <button onclick="clearStatFilters()" style="width:100%;margin-top:10px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);color:#ef4444;padding:8px;border-radius:10px;font-size:0.75rem;font-weight:800;cursor:pointer;">✕ Clear Filters</button>
+            </div>
             <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;">
                 <div class="stat-card" style="padding:12px 6px;text-align:center;">
                     <div style="font-size:1.1rem;font-weight:900;color:#f39c12;" id="statTotalCollected">₹0</div>
@@ -540,12 +582,17 @@
 <!-- PAYMENT MODAL -->
 <div id="paymentModal" class="modal-overlay">
     <div class="modal-content-custom">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-            <div class="modal-title" style="margin-bottom:0;">💳 Record Payment</div>
-            <button onclick="resetPaymentForm()" title="Clear all fields" style="background:rgba(243,156,18,.12);border:1px solid rgba(243,156,18,.3);color:#f39c12;border-radius:10px;padding:6px 12px;font-size:1.05rem;font-weight:700;cursor:pointer;">🔄 Refresh</button>
+        <div class="modal-title" style="margin-bottom:12px;">💳 Record Payment</div>
+
+        <!-- Date + Refresh on same row -->
+        <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:10px;">
+            <div style="flex:1;">
+                <label class="form-label-small">Payment Date</label>
+                <input type="date" id="pDate" class="form-input" style="margin-bottom:0;">
+            </div>
+            <button onclick="resetPaymentForm()" title="Clear all fields" style="background:rgba(243,156,18,.12);border:1px solid rgba(243,156,18,.3);color:#f39c12;border-radius:10px;padding:10px 14px;font-size:1rem;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap;">🔄 Refresh</button>
         </div>
-        <label class="form-label-small">Payment Date</label>
-        <input type="date" id="pDate" class="form-input">
+
         <label class="form-label-small">Member</label>
         <div style="position:relative;">
             <input type="text" id="pMemberSearch" class="form-input" placeholder="🔍 Search Member..." oninput="filterSearch('pMemberSearch','pMemberList','pMember')">
@@ -556,7 +603,6 @@
         <select id="pGroup" class="form-input"><option value="">-- Select Member First --</option></select>
         <input type="hidden" id="pEnrollmentId">
         <input type="hidden" id="pSlotNum" value="1">
-        <!-- Joint member banner — shown when enrollment has a co-member -->
         <div id="jointMemberBanner" style="display:none;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.28);border-radius:10px;padding:10px 14px;margin-bottom:10px;"></div>
 
         <label class="form-label-small">Payment Type</label>
@@ -565,7 +611,6 @@
             <option value="multi">Multiple Months (past dues / bulk) 📅</option>
         </select>
 
-        <!-- Single-month: which month is this payment for -->
         <div id="singleMonthDropdownWrap" style="display:none;">
             <label class="form-label-small">📅 Which Month is this Payment For?</label>
             <select id="pSingleMonthSlot" class="form-input" onchange="onSingleMonthSlotChange()">
@@ -579,7 +624,6 @@
             <div style="font-size:0.92rem;color:var(--text-dim);margin-bottom:8px;">✅ Green = already paid &nbsp;|&nbsp; Tick the months being paid now</div>
             <div id="monthSelectorGrid" class="month-selector-grid"></div>
             <div id="selectedSummary" class="selected-summary" style="display:none;"></div>
-            <!-- Per-month custom amounts -->
             <div id="perMonthAmtWrap" style="display:none;margin-top:10px;">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
                     <label style="font-size:0.92rem;font-weight:800;color:var(--text-dim);text-transform:uppercase;flex:1;">💰 Amount per Month (if different)</label>
@@ -591,6 +635,7 @@
             </div>
         </div>
 
+        <!-- Chit Amount + Paid Amount (already in row, keep as-is) -->
         <div class="row g-2">
             <div class="col-6">
                 <label class="form-label-small">Chit Amount <span id="perMonthLabel" style="color:#a5b4fc;font-size:1.05rem;"></span></label>
@@ -607,23 +652,32 @@
             <span style="color:var(--text-dim);margin-left:12px;">Balance:</span>
             <span id="totalBalVal" style="color:#f59e0b;font-weight:700;margin-left:6px;"></span>
         </div>
-        <label class="form-label-small">Paid By</label>
-        <div style="display:flex;gap:6px;align-items:center;">
-            <div style="position:relative;flex:1;">
-                <input type="text" id="pPaidBy" class="form-input" style="margin-bottom:0;" placeholder="Select or type payment mode..." autocomplete="off" oninput="showPaidByDropdown('pPaidBy','pPaidByDrop')" onfocus="showPaidByDropdown('pPaidBy','pPaidByDrop')">
-                <div id="pPaidByDrop" style="display:none;position:absolute;z-index:200;width:100%;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.4);max-height:200px;overflow-y:auto;"></div>
+
+        <!-- Paid By + Chit Picked on same row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start;">
+            <div>
+                <label class="form-label-small">Paid By</label>
+                <div style="display:flex;gap:4px;align-items:center;">
+                    <div style="position:relative;flex:1;">
+                        <input type="text" id="pPaidBy" class="form-input" style="margin-bottom:0;" placeholder="Mode..." autocomplete="off" oninput="showPaidByDropdown('pPaidBy','pPaidByDrop')" onfocus="showPaidByDropdown('pPaidBy','pPaidByDrop')">
+                        <div id="pPaidByDrop" style="display:none;position:absolute;z-index:200;width:100%;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.4);max-height:180px;overflow-y:auto;"></div>
+                    </div>
+                    <button type="button" onclick="openManagePaidBy('pPaidBy')" title="Edit options" style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.35);color:#a5b4fc;border-radius:8px;padding:9px 9px;font-size:0.85rem;cursor:pointer;flex-shrink:0;">⚙️</button>
+                </div>
             </div>
-            <button type="button" onclick="openManagePaidBy('pPaidBy')" title="Edit options" style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.35);color:#a5b4fc;border-radius:10px;padding:11px 13px;font-size:0.9rem;cursor:pointer;flex-shrink:0;">⚙️</button>
+            <div>
+                <label class="form-label-small">Chit Picked?</label>
+                <select id="pChitPicked" class="form-input" style="margin-bottom:0;" onchange="toggleChitPickedName()">
+                    <option value="No">No</option>
+                    <option value="Yes">Yes ✅</option>
+                </select>
+            </div>
         </div>
-        <label class="form-label-small" style="margin-top:10px;">Chit Picked?</label>
-        <select id="pChitPicked" class="form-input" onchange="toggleChitPickedName()">
-            <option value="No">No</option>
-            <option value="Yes">Yes ✅</option>
-        </select>
-        <div id="chitPickedNameDiv" style="display:none;">
+        <div id="chitPickedNameDiv" style="display:none;margin-top:8px;">
             <label class="form-label-small">Chit Picked Value</label>
             <input type="text" id="pChitPickedBy" class="form-input" placeholder="Enter chit picked value">
         </div>
+
         <button class="btn-save" onclick="savePayment()">✓ Sync Payment</button>
         <button class="btn-cancel" onclick="closeModal('paymentModal')">Cancel</button>
     </div>
