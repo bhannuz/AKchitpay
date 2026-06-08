@@ -122,9 +122,86 @@ function switchBackupSubTab(tab) {
 // ── Statistics Loader ───────────────────────────────────────
 
 // ── Statistics Loader ───────────────────────────────────────
+function hexToRgb(hex) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `${r},${g},${b}`;
+}
+
 function clearStatFilters() {
-    ['statFromDate','statToDate','statMemberFilter'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
-    ['statGroupFilter','statModeFilter','statChitFilter'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+    ['sfActiveGroup','sfActiveMode','sfActiveChit','sfActiveMember'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
+    });
+    // reset dropdowns
+    ['statGroupFilter','statModeFilter','statChitFilter'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+    const mf = document.getElementById('statMemberFilter'); if(mf) mf.value='';
+    // reset type selector & hide sub
+    const ft = document.getElementById('statFilterType'); if(ft) ft.value='';
+    const sw = document.getElementById('statSubFilterWrap'); if(sw) sw.style.display='none';
+    renderStatFilterChips();
+    loadStatistics();
+}
+
+function onStatFilterTypeChange() {
+    const type = document.getElementById('statFilterType').value;
+    const wrap = document.getElementById('statSubFilterWrap');
+    ['sfGroup','sfMode','sfChit','sfMember'].forEach(id => {
+        const el = document.getElementById(id); if(el) el.style.display='none';
+    });
+    if (!type) { wrap.style.display='none'; return; }
+    wrap.style.display = '';
+    const map = { group:'sfGroup', mode:'sfMode', chit:'sfChit', member:'sfMember' };
+    const panel = document.getElementById(map[type]);
+    if (panel) panel.style.display = '';
+}
+
+function applyStatSubFilter() {
+    const type = (document.getElementById('statFilterType')||{}).value;
+    const vals = {
+        group:  (document.getElementById('statGroupFilter') ||{}).value||'',
+        mode:   (document.getElementById('statModeFilter')  ||{}).value||'',
+        chit:   (document.getElementById('statChitFilter')  ||{}).value||'',
+        member: (document.getElementById('statMemberFilter')||{}).value||''
+    };
+    const keys = { group:'sfActiveGroup', mode:'sfActiveMode', chit:'sfActiveChit', member:'sfActiveMember' };
+    if (type && keys[type]) {
+        const el = document.getElementById(keys[type]);
+        if (el) el.value = vals[type];
+    }
+    renderStatFilterChips();
+    loadStatistics();
+}
+
+function renderStatFilterChips() {
+    const container = document.getElementById('statActiveFilters');
+    if (!container) return;
+    const defs = [
+        { key:'sfActiveGroup',  label:'Group',   icon:'🏦' },
+        { key:'sfActiveMode',   label:'Mode',    icon:'💳' },
+        { key:'sfActiveChit',   label:'Chit',    icon:'✅' },
+        { key:'sfActiveMember', label:'Member',  icon:'👤' },
+    ];
+    container.innerHTML = '';
+    defs.forEach(d => {
+        const el = document.getElementById(d.key);
+        const val = el ? el.value.trim() : '';
+        if (!val) return;
+        const chip = document.createElement('div');
+        chip.style.cssText = 'display:inline-flex;align-items:center;gap:5px;background:rgba(99,102,241,0.18);border:1px solid rgba(99,102,241,0.4);border-radius:20px;padding:4px 10px;font-size:0.72rem;font-weight:700;color:#a5b4fc;';
+        chip.innerHTML = `${d.icon} ${d.label}: <span style="color:white;">${val}</span> <span onclick="removeStatFilter('${d.key}')" style="cursor:pointer;color:#ef4444;margin-left:2px;font-size:0.8rem;">✕</span>`;
+        container.appendChild(chip);
+    });
+}
+
+function removeStatFilter(key) {
+    const el = document.getElementById(key);
+    if (el) el.value = '';
+    // also reset the corresponding dropdown/input
+    const map = { sfActiveGroup:'statGroupFilter', sfActiveMode:'statModeFilter', sfActiveChit:'statChitFilter', sfActiveMember:'statMemberFilter' };
+    const inputEl = document.getElementById(map[key]);
+    if (inputEl) inputEl.value = '';
+    renderStatFilterChips();
     loadStatistics();
 }
 
@@ -146,13 +223,11 @@ async function loadStatistics() {
         modes.forEach(m => { const o = document.createElement('option'); o.value = m; o.text = m; modeSel.appendChild(o); });
     }
 
-    // ── Read filters
-    const fromDate   = (document.getElementById('statFromDate')    || {}).value || '';
-    const toDate     = (document.getElementById('statToDate')      || {}).value || '';
-    const grpFilter  = (document.getElementById('statGroupFilter') || {}).value || '';
-    const modeFilter = (document.getElementById('statModeFilter')  || {}).value || '';
-    const chitFilter = (document.getElementById('statChitFilter')  || {}).value || '';
-    const memFilter  = ((document.getElementById('statMemberFilter') || {}).value || '').toLowerCase().trim();
+    // ── Read filters from hidden state holders
+    const grpFilter  = (document.getElementById('sfActiveGroup')  || {}).value || '';
+    const modeFilter = (document.getElementById('sfActiveMode')   || {}).value || '';
+    const chitFilter = (document.getElementById('sfActiveChit')   || {}).value || '';
+    const memFilter  = ((document.getElementById('sfActiveMember')|| {}).value || '').toLowerCase().trim();
 
     const filteredMemberIds = memFilter
         ? members.filter(m => m.name.toLowerCase().includes(memFilter)).map(m => m.id)
@@ -160,8 +235,6 @@ async function loadStatistics() {
 
     // ── Apply filters
     const payments = allPays.filter(p => {
-        if (fromDate && p.date && p.date < fromDate) return false;
-        if (toDate   && p.date && p.date > toDate)   return false;
         if (grpFilter  && p.groupId !== grpFilter)   return false;
         if (modeFilter && (p.paidBy || '') !== modeFilter) return false;
         if (chitFilter && (p.chitPicked || 'No') !== chitFilter) return false;
