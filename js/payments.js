@@ -402,9 +402,10 @@ async function savePayment(){
         const balance=Math.max(0,totalChit-paid);
         const enrollmentId1 = document.getElementById('pEnrollmentId').value||'';
         const slotNum1 = parseInt(document.getElementById('pSlotNum').value||'1');
+        const paymentNote = getPaymentNoteText();
         await db.collection('payments').add({
             memberId:mid, groupId:gid, enrollmentId:enrollmentId1, slotNum:slotNum1, date,
-            chit:chitPerMonth, paid, balance, paidBy, chitPicked, chitPickedBy,
+            chit:chitPerMonth, paid, balance, paidBy, chitPicked, chitPickedBy, paymentNote,
             numMonths, monthSlots, monthSlot:monthSlots[0],
             paidPerMonth:paid/numMonths, balPerMonth:balance/numMonths,
             ...(perMonthBreakdown?{perMonthBreakdown}:{})
@@ -456,6 +457,8 @@ async function openEditPayment(pid){
     document.getElementById('epPaidBy').value=p.paidBy||'';
     document.getElementById('epChitPicked').value=p.chitPicked||'No';
     document.getElementById('epChitPickedBy').value=p.chitPickedBy||'';
+    document.getElementById('epPaymentNote').value=p.paymentNote||'';
+    onEditNoteChange();
     document.getElementById('epChitPickedNameDiv').style.display=p.chitPicked==='Yes'?'block':'none';
 
     const infoBox=document.getElementById('epMultiMonthInfo');
@@ -498,7 +501,8 @@ async function saveEditPayment(){
     const chitPickedBy=document.getElementById('epChitPickedBy').value.trim();
     if(!date)return showToast('\u274c Enter date',false);
     if(!paid)return showToast('\u274c Enter amount paid',false);
-    await db.collection('payments').doc(pid).update({date,chit,paid,balance,paidBy,chitPicked,chitPickedBy});
+    const paymentNote=getEditPaymentNoteText();
+    await db.collection('payments').doc(pid).update({date,chit,paid,balance,paidBy,chitPicked,chitPickedBy,paymentNote});
     bustCache('payments');
     closeModal('editPaymentModal');showToast('\u2705 Payment updated!');updateUI();
     const mid=document.getElementById('summaryView').value;
@@ -625,4 +629,41 @@ function savePaidByOptions() {
     savePaidByToStorage();
     closeModal('managePaidByModal');
     showToast('✅ Payment modes saved!');
+}
+
+
+// ── Payment Notes Handling ──────────────────────────────────
+function onPaymentNoteChange() {
+    const sel = document.getElementById('pPaymentNote');
+    const custom = document.getElementById('pCustomNote');
+    if (!sel || !custom) return;
+    custom.style.display = sel.value === 'Custom' ? '' : 'none';
+}
+
+function onEditNoteChange() {
+    const sel = document.getElementById('epPaymentNote');
+    const custom = document.getElementById('epCustomNote');
+    if (!sel || !custom) return;
+    custom.style.display = sel.value === 'Custom' ? '' : 'none';
+}
+
+// Get note text to store
+function getPaymentNoteText() {
+    const sel = document.getElementById('pPaymentNote');
+    const custom = document.getElementById('pCustomNote');
+    if (!sel) return '';
+    if (sel.value === 'Custom') {
+        return custom?.value || 'Custom Note';
+    }
+    return sel.value || '';
+}
+
+function getEditPaymentNoteText() {
+    const sel = document.getElementById('epPaymentNote');
+    const custom = document.getElementById('epCustomNote');
+    if (!sel) return '';
+    if (sel.value === 'Custom') {
+        return custom?.value || 'Custom Note';
+    }
+    return sel.value || '';
 }
