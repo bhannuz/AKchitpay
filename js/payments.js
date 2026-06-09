@@ -250,11 +250,7 @@ function resetPaymentForm(){
     document.getElementById('pPaid').value='';
     document.getElementById('pPaidBy').value='';
     document.getElementById('pChitPicked').value='No';
-    document.getElementById('pPaymentType').value = 'regular';
-    onPaymentTypeChange();
     document.getElementById('pChitPickedBy').value='';
-    document.getElementById('pPaymentType').value = 'regular';
-    onPaymentTypeChange();
     document.getElementById('chitPickedNameDiv').style.display='none';
     document.getElementById('multiMonthPreview').style.display='none';
     document.getElementById('totalChitRef').style.display='none';
