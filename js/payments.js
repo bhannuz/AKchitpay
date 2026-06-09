@@ -411,29 +411,7 @@ async function savePayment(){
             ...(perMonthBreakdown?{perMonthBreakdown}:{})
         });
         bustCache('payments');
-        showToast('\u2705 '+numMonths+'-month payment saved!');
-    } else {
-        // Single month — use the dropdown-selected slot
-        const slotSel=document.getElementById('pSingleMonthSlot');
-        const selectedSlot=slotSel.value!==''?parseInt(slotSel.value):null;
-        if(selectedSlot===null)return showToast('\u274c Select which month this payment is for',false);
-        const gs=await getCollection('groups');
-        const grp=gs.find(g=>g.id===gid);
-        const dueDates=grp?getGroupDueDates(grp):[];
-        const slotLabel=dueDates[selectedSlot]?fmtDate(dueDates[selectedSlot]):`Month ${selectedSlot+1}`;
-        const balance=Math.max(0,chitPerMonth-paid);
-        const isPartial=paid>0&&chitPerMonth>0&&paid<chitPerMonth;
-        const enrollmentId2=document.getElementById('pEnrollmentId').value||'';
-        const slotNum2=parseInt(document.getElementById('pSlotNum').value||'1');
-        await db.collection('payments').add({
-            memberId:mid, groupId:gid, enrollmentId:enrollmentId2, slotNum:slotNum2, date,
-            chit:chitPerMonth, paid, balance, paidBy, chitPicked, chitPickedBy,
-            numMonths:1, monthSlot:selectedSlot, monthSlots:[selectedSlot],
-            isPartial:isPartial, slotLabel:slotLabel
-        });
-        bustCache('payments');
-        const partialNote=isPartial?' (Partial)':'';
-        showToast('\u2705 Payment saved for '+slotLabel+partialNote+'!');
+        showToast('✅ '+numMonths+'-month payment saved!');
     }
 
     closeModal('paymentModal');
