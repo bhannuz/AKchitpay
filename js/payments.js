@@ -66,42 +66,13 @@ async function buildSingleMonthDropdown(){
     onSingleMonthSlotChange();
 }
 
-function onSingleMonthSlotChange(){
-    const sel=document.getElementById('pSingleMonthSlot');
-    const badge=document.getElementById('singleMonthBadge');
-    const slot=parseInt(sel.value);
-    if(isNaN(slot)||sel.value===''){badge.style.display='none';return;}
-    const isPaid=window._singleMonthPaidSlots.has(slot);
-    badge.style.display='block';
-    if(isPaid){
-        badge.style.background='rgba(245,158,11,0.13)';
-        badge.style.borderColor='rgba(245,158,11,0.4)';
-        badge.style.color='#fbbf24';
-        badge.innerHTML='⚠️ This month already has a payment recorded. A new entry will be saved as an <strong>additional / partial payment</strong>.';
-    } else {
-        badge.style.background='rgba(16,185,129,0.1)';
-        badge.style.borderColor='rgba(16,185,129,0.3)';
-        badge.style.color='#34d399';
-        badge.innerHTML='✅ This month has no payment yet.';
-    }
-    calcBalance();
-}
 
 async function onNumMonthsChange(){
-    const val=document.getElementById('pNumMonths').value;
     const preview=document.getElementById('multiMonthPreview');
-    const singleWrap=document.getElementById('singleMonthDropdownWrap');
     document.getElementById('totalChitRef').style.display='none';
-    if(val==='1'){
-        preview.style.display='none';
-        document.getElementById('perMonthLabel').textContent='';
-        await buildSingleMonthDropdown();
-    } else {
-        singleWrap.style.display='none';
-        document.getElementById('perMonthLabel').textContent='(per month)';
-        preview.style.display='block';
-        await buildMonthSelectorGrid();
-    }
+    document.getElementById('perMonthLabel').textContent='(per month)';
+    preview.style.display='block';
+    await buildMonthSelectorGrid();
     calcBalance();
 }
 
