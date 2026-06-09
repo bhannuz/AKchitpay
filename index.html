@@ -665,6 +665,18 @@
                 <input type="number" id="pPaid" class="form-input" placeholder="₹ total" oninput="calcBalance()">
             </div>
         </div>
+
+        <!-- Payment Notes -->
+        <label class="form-label-small">Payment Notes</label>
+        <select id="pPaymentNote" class="form-input" onchange="onPaymentNoteChange()" style="margin-bottom:8px;">
+            <option value="">-- Select Type --</option>
+            <option value="Regular">✅ Regular Payment</option>
+            <option value="Partial">⚠️ Partial Payment (incomplete)</option>
+            <option value="Advance">⏭️ Advance Payment (future month)</option>
+            <option value="Adjustment">🔧 Adjustment/Correction</option>
+            <option value="Custom">📝 Custom Note</option>
+        </select>
+        <input type="text" id="pCustomNote" class="form-input" style="display:none;margin-bottom:12px;" placeholder="Enter payment note...">
         <div id="totalChitRef" style="display:none;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:1.05rem;">
             <span style="color:var(--text-dim);">Total Chit:</span>
             <span id="totalChitVal" style="color:#a5b4fc;font-weight:700;margin-left:6px;"></span>
@@ -739,6 +751,19 @@
         </div>
         <label class="form-label-small">Balance (auto)</label>
         <input type="number" id="epBal" class="form-input" placeholder="Balance" readonly style="opacity:.7;">
+        
+        <!-- Payment Notes in Edit Modal -->
+        <label class="form-label-small">Payment Notes</label>
+        <select id="epPaymentNote" class="form-input" style="margin-bottom:8px;" onchange="onEditNoteChange()">
+            <option value="">-- Select Type --</option>
+            <option value="Regular">✅ Regular Payment</option>
+            <option value="Partial">⚠️ Partial Payment (incomplete)</option>
+            <option value="Advance">⏭️ Advance Payment (future month)</option>
+            <option value="Adjustment">🔧 Adjustment/Correction</option>
+            <option value="Custom">📝 Custom Note</option>
+        </select>
+        <input type="text" id="epCustomNote" class="form-input" style="display:none;margin-bottom:12px;" placeholder="Enter payment note...">
+        
         <label class="form-label-small">Paid By</label>
         <div style="display:flex;gap:6px;align-items:center;">
             <div style="position:relative;flex:1;">
