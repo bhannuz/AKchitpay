@@ -695,31 +695,52 @@ function getEditPaymentNoteText() {
 }
 
 // ── Update Chit Picked option based on selected months ──
+// ── Update Chit Picked option based on selected months ──
 async function updateChitPickedOption() {
-    const monthSlots = getSelectedMonthSlots();
-    const mid = document.getElementById('pMember').value;
-    const gid = document.getElementById('pGroup').value;
-    const yesOption = document.querySelector('#pChitPicked option[value="Yes"]');
-    
-    if (!yesOption || !mid || !gid || monthSlots.length === 0) {
-        if (yesOption) yesOption.disabled = false;
-        return;
+    try {
+        const monthSlots = getSelectedMonthSlots();
+        const mid = document.getElementById('pMember').value;
+        const gid = document.getElementById('pGroup').value;
+        const chitSelect = document.getElementById('pChitPicked');
+        const yesOption = chitSelect ? chitSelect.querySelector('option[value="Yes"]') : null;
+        
+        console.log('updateChitPickedOption:', {monthSlots, mid, gid, hasYesOption: !!yesOption});
+        
+        if (!yesOption || !mid || !gid || monthSlots.length === 0) {
+            if (yesOption) yesOption.disabled = false;
+            console.log('Conditions not met, enabling Yes option');
+            return;
+        }
+        
+        // Check if any of the selected slots already have chitPicked='Yes'
+        const ps = await getCollection('payments');
+        const alreadyPicked = ps.some(p => {
+            const matches = p.memberId === mid && 
+                          p.groupId === gid && 
+                          p.chitPicked === 'Yes';
+            if (!matches) return false;
+            
+            // Check if this payment covers any of our selected slots
+            const coversSlot = monthSlots.some(slot =>
+                (Array.isArray(p.monthSlots) && p.monthSlots.includes(slot)) ||
+                p.monthSlot === slot
+            );
+            
+            if (coversSlot) {
+                console.log('Found payment with chitPicked=Yes for slot:', p.monthSlot, p.monthSlots);
+            }
+            return coversSlot;
+        });
+        
+        console.log('Already picked in selected slots:', alreadyPicked);
+        yesOption.disabled = alreadyPicked;
+        
+        if (alreadyPicked) {
+            chitSelect.value = 'No';
+            console.log('Disabled Yes option and set to No');
+        }
+    } catch(error) {
+        console.error('Error in updateChitPickedOption:', error);
     }
-    
-    // Check if any of the selected slots already have chitPicked='Yes'
-    const ps = await getCollection('payments');
-    const alreadyPicked = ps.some(p =>
-        p.memberId === mid &&
-        p.groupId === gid &&
-        p.chitPicked === 'Yes' &&
-        monthSlots.some(slot =>
-            (Array.isArray(p.monthSlots) && p.monthSlots.includes(slot)) ||
-            p.monthSlot === slot
-        )
-    );
-    
-    yesOption.disabled = alreadyPicked;
-    if (alreadyPicked) {
-        document.getElementById('pChitPicked').value = 'No';
-    }
+}
 }
