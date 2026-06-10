@@ -752,3 +752,35 @@
         <input type="number" id="epBal" class="form-input" placeholder="Balance" readonly style="opacity:.7;">
         
         <!-- Payment Notes in Edit Modal -->
+        </div>
+        <label class="form-label-small">Paid By</label>
+        <div style="display:flex;gap:6px;">
+            <input type="text" id="epPaidBy" class="form-input" style="margin-bottom:0;flex:1;" placeholder="Payment mode">
+            <button onclick="openManagePaidBy('epPaidBy')" title="Manage modes" style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.35);color:#a5b4fc;border-radius:10px;padding:8px 10px;font-size:0.75rem;cursor:pointer;flex-shrink:0;">⚙️</button>
+        </div>
+        <div id="epPaidByDrop" class="paid-by-dropdown" style="display:none;"></div>
+        <label class="form-label-small" style="margin-top:10px;">Chit Picked?</label>
+        <select id="epChitPicked" class="form-input" style="margin-bottom:0;"><option value="No">No</option><option value="Yes">Yes ✅</option></select>
+        <div id="epChitPickedNameDiv" style="display:none;margin-top:8px;"><label class="form-label-small">Chit Picked Value</label><input type="text" id="epChitPickedBy" class="form-input" placeholder="Enter chit picked value"></div>
+        <button class="btn-save" onclick="saveEditPayment()">✓ Update Payment</button>
+        <button class="btn-cancel" onclick="closeModal('editPaymentModal')">Cancel</button>
+    </div>
+</div>
+
+</body>
+</html>
+
+<!-- Scripts -->
+<script src="js/init.js?v=20260610_v1"></script>
+<script src="js/helpers.js?v=20260610_v1"></script>
+<script src="js/auth.js?v=20260610_v1"></script>
+<script src="js/members.js?v=20260610_v1"></script>
+<script src="js/groups.js?v=20260610_v1"></script>
+<script src="js/ui.js?v=20260610_v1"></script>
+<script src="js/payments.js?v=20260610_v1"></script>
+<script src="js/ledger.js?v=20260610_v1"></script>
+<script src="js/backup.js?v=20260610_v1"></script>
+<script src="js/qr.js?v=20260610_v1"></script>
+<script src="js/quickview.js?v=20260610_v1"></script>
+<script src="js/planner.js?v=20260610_v1"></script>
+<script src="js/print.js?v=20260610_v1"></script>
