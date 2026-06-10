@@ -631,14 +631,23 @@
         <input type="hidden" id="pSlotNum" value="1">
         <div id="jointMemberBanner" style="display:none;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.28);border-radius:10px;padding:10px 14px;margin-bottom:10px;"></div>
 
+        <!-- Payment Type Selector -->
         <label class="form-label-small">Payment Type</label>
-        <select id="pNumMonths" class="form-input" onchange="onNumMonthsChange()" style="display:none;">
+        <select id="pNumMonths" class="form-input" onchange="onNumMonthsChange()">
             <option value="1">Single Month</option>
             <option value="multi" selected>Multiple Months (past dues / bulk) 📅</option>
         </select>
-        <input type="hidden" id="pNumMonths" value="multi">
 
-        <div id="multiMonthPreview" class="multi-month-preview">
+        <!-- Single Month Mode -->
+        <div id="singleMonthDropdownWrap" style="display:none;margin-top:8px;">
+            <label class="form-label-small">📅 Which Month is this Payment For?</label>
+            <select id="pSingleMonthSlot" class="form-input" onchange="onSingleMonthSlotChange()">
+                <option value="">-- Select Month --</option>
+            </select>
+            <div id="singleMonthBadge" style="display:none;border-radius:9px;padding:8px 12px;font-size:0.88rem;margin-top:6px;margin-bottom:4px;border:1px solid;"></div>
+        </div>
+
+        <!-- Multiple Month Mode -->
             <div class="multi-month-preview-title">📅 Select Months to Pay</div>
             <div style="font-size:0.92rem;color:var(--text-dim);margin-bottom:8px;">✅ Green = already paid &nbsp;|&nbsp; Tick the months being paid now</div>
             <div id="monthSelectorGrid" class="month-selector-grid"></div>
@@ -667,16 +676,6 @@
         </div>
 
         <!-- Payment Notes -->
-        <label class="form-label-small">Payment Notes</label>
-        <select id="pPaymentNote" class="form-input" onchange="onPaymentNoteChange()" style="margin-bottom:8px;">
-            <option value="">-- Select Type --</option>
-            <option value="Regular">✅ Regular Payment</option>
-            <option value="Partial">⚠️ Partial Payment (incomplete)</option>
-            <option value="Advance">⏭️ Advance Payment (future month)</option>
-            <option value="Adjustment">🔧 Adjustment/Correction</option>
-            <option value="Custom">📝 Custom Note</option>
-        </select>
-        <input type="text" id="pCustomNote" class="form-input" style="display:none;margin-bottom:12px;" placeholder="Enter payment note...">
         <div id="totalChitRef" style="display:none;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:1.05rem;">
             <span style="color:var(--text-dim);">Total Chit:</span>
             <span id="totalChitVal" style="color:#a5b4fc;font-weight:700;margin-left:6px;"></span>
@@ -753,173 +752,3 @@
         <input type="number" id="epBal" class="form-input" placeholder="Balance" readonly style="opacity:.7;">
         
         <!-- Payment Notes in Edit Modal -->
-        <label class="form-label-small">Payment Notes</label>
-        <select id="epPaymentNote" class="form-input" style="margin-bottom:8px;" onchange="onEditNoteChange()">
-            <option value="">-- Select Type --</option>
-            <option value="Regular">✅ Regular Payment</option>
-            <option value="Partial">⚠️ Partial Payment (incomplete)</option>
-            <option value="Advance">⏭️ Advance Payment (future month)</option>
-            <option value="Adjustment">🔧 Adjustment/Correction</option>
-            <option value="Custom">📝 Custom Note</option>
-        </select>
-        <input type="text" id="epCustomNote" class="form-input" style="display:none;margin-bottom:12px;" placeholder="Enter payment note...">
-        
-        <label class="form-label-small">Paid By</label>
-        <div style="display:flex;gap:6px;align-items:center;">
-            <div style="position:relative;flex:1;">
-                <input type="text" id="epPaidBy" class="form-input" style="margin-bottom:0;" placeholder="Select or type payment mode..." autocomplete="off" oninput="showPaidByDropdown('epPaidBy','epPaidByDrop')" onfocus="showPaidByDropdown('epPaidBy','epPaidByDrop')">
-                <div id="epPaidByDrop" style="display:none;position:absolute;z-index:200;width:100%;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.4);max-height:200px;overflow-y:auto;"></div>
-            </div>
-            <button type="button" onclick="openManagePaidBy('epPaidBy')" title="Edit options" style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.35);color:#a5b4fc;border-radius:10px;padding:11px 13px;font-size:0.9rem;cursor:pointer;flex-shrink:0;">⚙️</button>
-        </div>
-        <label class="form-label-small" style="margin-top:10px;">Chit Picked?</label>
-        <select id="epChitPicked" class="form-input" onchange="epTogglePickedName()">
-            <option value="No">No</option>
-            <option value="Yes">Yes ✅</option>
-        </select>
-        <div id="epChitPickedNameDiv" style="display:none;">
-            <label class="form-label-small">Chit Picked Value</label>
-            <input type="text" id="epChitPickedBy" class="form-input" placeholder="Enter chit picked value">
-        </div>
-        <button class="btn-save" onclick="saveEditPayment()">✓ Update Payment</button>
-        <button class="btn-danger-full" onclick="deletePayment()">🗑 Delete Payment</button>
-        <button class="btn-cancel" onclick="closeModal('editPaymentModal')">Cancel</button>
-    </div>
-</div>
-
-<!-- CONFIRM MODAL -->
-<div id="confirmModal" class="modal-overlay">
-    <div class="modal-content-custom" style="max-width:360px;">
-        <div style="font-size:2rem;text-align:center;margin-bottom:10px;" id="confirmIcon">⚠️</div>
-        <div class="modal-title text-center" id="confirmTitle">Are you sure?</div>
-        <p style="font-size:1.05rem;color:var(--text-dim);text-align:center;margin-bottom:20px;" id="confirmMsg"></p>
-        <button class="btn-danger-full" id="confirmOkBtn">Confirm</button>
-        <button class="btn-cancel" onclick="closeModal('confirmModal')">Cancel</button>
-    </div>
-</div>
-
-<!-- QUICK MEMBERS MODAL -->
-<div id="membersQuickModal" class="modal-overlay">
-    <div class="modal-content-custom" style="max-width:520px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-            <div class="modal-title" style="margin-bottom:0;">👥 All Members</div>
-            <button onclick="closeModal('membersQuickModal')" style="background:none;border:none;color:var(--text-dim);font-size:1.3rem;cursor:pointer;">✕</button>
-        </div>
-        <input type="text" id="mqSearch" class="form-input" placeholder="🔍 Filter members..." oninput="filterMembersQuick()" style="margin-bottom:10px;">
-        <div id="membersQuickList" style="max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
-        <button class="btn-cancel" onclick="closeModal('membersQuickModal')" style="margin-top:12px;">Close</button>
-    </div>
-</div>
-
-<!-- QUICK GROUPS MODAL -->
-<div id="groupsQuickModal" class="modal-overlay">
-    <div class="modal-content-custom" style="max-width:520px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-            <div class="modal-title" style="margin-bottom:0;">📁 All Groups</div>
-            <button onclick="closeModal('groupsQuickModal')" style="background:none;border:none;color:var(--text-dim);font-size:1.3rem;cursor:pointer;">✕</button>
-        </div>
-        <div id="groupsQuickList" style="max-height:460px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;"></div>
-        <button class="btn-cancel" onclick="closeModal('groupsQuickModal')" style="margin-top:12px;">Close</button>
-    </div>
-</div>
-
-<!-- ══════ LOGIN SCREEN ══════ -->
-<div id="loginScreen">
-    <div class="login-card">
-        <div class="login-brand">
-            <div style="display:flex;justify-content:center;margin-bottom:12px;">
-                <img src="logo.png" alt="AK Chit Funds" style="width:88px;height:88px;border-radius:18px;object-fit:cover;box-shadow:0 4px 24px rgba(243,156,18,.35);">
-            </div>
-            <div class="login-brand-title">AK Chit Funds</div>
-            <div class="login-brand-sub">Enter your mobile number to continue</div>
-        </div>
-        <div id="loginStep1" class="login-step active">
-            <label class="form-label-small">Mobile Number</label>
-            <div class="login-phone-input">
-                <span class="phone-prefix">+91</span>
-                <input type="tel" id="loginPhone" class="form-input" style="margin-bottom:0;" placeholder="10-digit mobile number" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'')">
-            </div>
-            <div style="height:12px;"></div>
-            <button class="btn-save" onclick="handleLoginSubmit()">🔐 Continue</button>
-        </div>
-        <div id="loginStep2" class="login-step">
-            <div class="pending-box">
-                <div style="font-size:2rem;margin-bottom:10px;">⏳</div>
-                <div style="font-weight:800;font-size:1rem;margin-bottom:6px;">Access Requested</div>
-                <div style="font-size:1rem;color:var(--text-dim);margin-bottom:16px;">Your request has been sent to the admin. Please wait for approval.</div>
-                <div id="pendingPhone" style="font-size:1.05rem;color:#f39c12;font-weight:700;margin-bottom:16px;"></div>
-                <button class="btn-cancel" onclick="checkAccessStatus()" style="margin-bottom:8px;">🔄 Check Status</button>
-                <button class="btn-cancel" onclick="goBackToLogin()">← Back</button>
-            </div>
-        </div>
-        <div id="loginStep3" class="login-step">
-            <div class="denied-box">
-                <div style="font-size:2rem;margin-bottom:10px;">🚫</div>
-                <div style="font-weight:800;color:#f87171;margin-bottom:6px;">Access Denied</div>
-                <div style="font-size:1rem;color:var(--text-dim);margin-bottom:16px;">Your access request was denied. Contact the admin for assistance.</div>
-                <button class="btn-cancel" onclick="goBackToLogin()">← Try Another Number</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ACCESS REQUESTS MODAL -->
-<div id="accessModal" class="modal-overlay">
-    <div class="modal-content-custom" style="max-width:500px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-            <div class="modal-title" style="margin-bottom:0;">🔐 Access Requests</div>
-            <button onclick="closeModal('accessModal')" style="background:none;border:none;color:var(--text-dim);font-size:1.2rem;cursor:pointer;">✕</button>
-        </div>
-        <div style="display:flex;gap:8px;margin-bottom:14px;">
-            <button onclick="filterRequests('pending')" id="reqTabPending" class="btn-save" style="flex:1;padding:8px;font-size:1.05rem;margin-bottom:0;">⏳ Pending</button>
-            <button onclick="filterRequests('approved')" id="reqTabApproved" class="btn-cancel" style="flex:1;padding:8px;font-size:1.05rem;">✅ Approved</button>
-            <button onclick="filterRequests('all')" id="reqTabAll" class="btn-cancel" style="flex:1;padding:8px;font-size:1.05rem;">📋 All</button>
-        </div>
-        <div id="accessRequestsList" style="max-height:400px;overflow-y:auto;"></div>
-        <button class="btn-cancel" onclick="closeModal('accessModal')" style="margin-top:10px;">Close</button>
-    </div>
-</div>
-
-<!-- BOTTOM NAV -->
-<div class="nav-bar">
-    <div class="nav-item active" id="navHome" onclick="switchTab('home')">🏠<br>Home</div>
-    <div class="nav-item" id="navGroups" onclick="switchTab('groups')">📁<br>Groups</div>
-    <div class="nav-item" id="navPlanner" onclick="switchTab('planner')">📋<br>Planner</div>
-    <div class="nav-item" id="navBackup" onclick="switchTab('backup')">💾<br>Backup</div>
-</div>
-    <script>
-        function toggleQrSection(){
-            var body    = document.getElementById('qrSectionBody');
-            var chevron = document.getElementById('qrSectionChevron');
-            if(!body) return;
-            var open = body.style.display !== 'none';
-            body.style.display      = open ? 'none'         : 'block';
-            chevron.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
-            if(!open){
-                // Poll until qr.js is loaded, then render versions
-                var attempts = 0;
-                var poll = setInterval(function(){
-                    attempts++;
-                    if(typeof qrRenderVersions === 'function'){
-                        clearInterval(poll);
-                        qrRenderVersions();
-                    } else if(attempts > 20){
-                        clearInterval(poll);
-                    }
-                }, 100);
-            }
-        }
-        function toggleWaSection(){
-            var body    = document.getElementById('waSectionBody');
-            var chevron = document.getElementById('waSectionChevron');
-            if(!body) return;
-            var open = body.style.display !== 'none';
-            body.style.display      = open ? 'none'         : 'block';
-            chevron.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
-            if(!open && typeof waRenderMemberGrid === 'function') waRenderMemberGrid();
-            if(!open && typeof waRenderVersions === 'function') waRenderVersions();
-        }
-    </script>
-    <script src="app.js"></script>
-</body>
-</html>
