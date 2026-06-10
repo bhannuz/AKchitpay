@@ -217,7 +217,7 @@ function resetPaymentForm(){
     document.getElementById('pMember').value='';
     document.getElementById('pMemberList').style.display='none';
     document.getElementById('pGroup').innerHTML='<option value="">-- Select Member First --</option>';
-    document.getElementById('pNumMonths').value='1';
+    document.getElementById('pNumMonths').value='multi';
     if(document.getElementById('perMonthCustomToggle')) document.getElementById('perMonthCustomToggle').checked=false;
     if(document.getElementById('perMonthAmtGrid')) document.getElementById('perMonthAmtGrid').style.display='none';
     if(document.getElementById('perMonthAmtWrap')) document.getElementById('perMonthAmtWrap').style.display='none';
@@ -371,7 +371,6 @@ async function showJointMemberInfo(mid, gid){
 // Simplified savePayment - remove payment note temporarily to fix the issue
 async function savePayment(){
     try {
-        console.log('=== SAVE PAYMENT START ===');
         if(!isAdmin()){showToast('🚫 Access denied',false);return;}
         
         const mid=document.getElementById('pMember').value;
@@ -382,90 +381,96 @@ async function savePayment(){
         const paidBy=document.getElementById('pPaidBy').value;
         const chitPicked=document.getElementById('pChitPicked').value;
         const chitPickedBy=document.getElementById('pChitPickedBy').value.trim();
-
-        console.log('Form Values:', {mid, gid, date, chitPerMonth, paid});
+        const mode = document.getElementById('pNumMonths').value;
 
         if(!mid){showToast('❌ Select a member',false);return;}
         if(!gid){showToast('❌ Select a group',false);return;}
         if(!date){showToast('❌ Enter date',false);return;}
         if(!paid){showToast('❌ Enter amount paid',false);return;}
 
-        const monthSlots=getSelectedMonthSlots();
-        console.log('Selected months:', monthSlots);
-        
-        if(monthSlots.length===0){showToast('❌ Select at least one month',false);return;}
-        
-        // Check if ANY of the selected slots already have chitPicked='Yes'
-        if(chitPicked==='Yes'){
-            const ps=await getCollection('payments');
-            const alreadyPickedInSlots=ps.some(p=>
-                p.memberId===mid&&
-                p.groupId===gid&&
-                p.chitPicked==='Yes'&&
-                monthSlots.some(slot=>
-                    (Array.isArray(p.monthSlots)&&p.monthSlots.includes(slot))||
-                    p.monthSlot===slot
-                )
-            );
-            if(alreadyPickedInSlots){
-                showToast('❌ Chit already picked for one of these slots',false);
-                return;
+        if(mode === '1') {
+            // Single month mode
+            const slotSel = document.getElementById('pSingleMonthSlot');
+            const selectedSlot = slotSel.value !== '' ? parseInt(slotSel.value) : null;
+            if(selectedSlot===null){showToast('❌ Select which month this payment is for',false);return;}
+            
+            const monthSlots = [selectedSlot];
+            const balance = Math.max(0, chitPerMonth - paid);
+            
+            // Check if this slot already has chit picked
+            if(chitPicked==='Yes'){
+                const ps=await getCollection('payments');
+                const alreadyPicked=ps.some(p=>
+                    p.memberId===mid&&
+                    p.groupId===gid&&
+                    p.chitPicked==='Yes'&&
+                    (p.monthSlot===selectedSlot||
+                     (Array.isArray(p.monthSlots)&&p.monthSlots.includes(selectedSlot)))
+                );
+                if(alreadyPicked){showToast('❌ Chit already picked for this month',false);return;}
             }
+            
+            const enrollmentId1 = document.getElementById('pEnrollmentId').value||'';
+            const slotNum1 = parseInt(document.getElementById('pSlotNum').value||'1');
+            
+            await db.collection('payments').add({
+                memberId:mid, groupId:gid, enrollmentId:enrollmentId1, slotNum:slotNum1, date,
+                chit:chitPerMonth, paid, balance, paidBy, chitPicked, chitPickedBy,
+                numMonths:1, monthSlots, monthSlot:selectedSlot,
+                paidPerMonth:paid, balPerMonth:balance
+            });
+            
+        } else {
+            // Multiple month mode
+            const monthSlots=getSelectedMonthSlots();
+            if(monthSlots.length===0){showToast('❌ Select at least one month',false);return;}
+            
+            const numMonths=monthSlots.length;
+            const totalChit=chitPerMonth*numMonths;
+            const balance=Math.max(0,totalChit-paid);
+            
+            if(chitPicked==='Yes'){
+                const ps=await getCollection('payments');
+                const alreadyPickedInSlots=ps.some(p=>
+                    p.memberId===mid&&
+                    p.groupId===gid&&
+                    p.chitPicked==='Yes'&&
+                    monthSlots.some(slot=>
+                        (Array.isArray(p.monthSlots)&&p.monthSlots.includes(slot))||
+                        p.monthSlot===slot
+                    )
+                );
+                if(alreadyPickedInSlots){showToast('❌ Chit already picked for one of these slots',false);return;}
+            }
+            
+            const enrollmentId1 = document.getElementById('pEnrollmentId').value||'';
+            const slotNum1 = parseInt(document.getElementById('pSlotNum').value||'1');
+            
+            await db.collection('payments').add({
+                memberId:mid, groupId:gid, enrollmentId:enrollmentId1, slotNum:slotNum1, date,
+                chit:chitPerMonth, paid, balance, paidBy, chitPicked, chitPickedBy,
+                numMonths, monthSlots, monthSlot:monthSlots[0],
+                paidPerMonth:paid/numMonths, balPerMonth:balance/numMonths
+            });
         }
-        
-        const numMonths=monthSlots.length;
-        const totalChit=chitPerMonth*numMonths;
-        const balance=Math.max(0,totalChit-paid);
-        const enrollmentId1 = document.getElementById('pEnrollmentId').value||'';
-        const slotNum1 = parseInt(document.getElementById('pSlotNum').value||'1');
-        
-        const paymentObj = {
-            memberId:mid, 
-            groupId:gid, 
-            enrollmentId:enrollmentId1, 
-            slotNum:slotNum1, 
-            date,
-            chit:chitPerMonth, 
-            paid, 
-            balance, 
-            paidBy, 
-            chitPicked, 
-            chitPickedBy,
-            numMonths, 
-            monthSlots, 
-            monthSlot:monthSlots[0],
-            paidPerMonth:paid/numMonths, 
-            balPerMonth:balance/numMonths
-        };
-        
-        console.log('Saving payment:', paymentObj);
-        const docRef = await db.collection('payments').add(paymentObj);
-        console.log('✅ Saved with ID:', docRef.id);
         
         bustCache('payments');
         showToast('✅ Payment recorded!');
-        
         closeModal('paymentModal');
         resetPaymentForm();
         
-        // Refresh UI
-        console.log('Updating UI...');
         await updateUI();
-        
-        // Set summaryView to this member and load ledger
-        console.log('Loading ledger for member:', mid);
         const summaryView = document.getElementById('summaryView');
         if(summaryView) {
             summaryView.value = mid;
             await loadMemberLedger();
         }
         
-        console.log('=== SAVE COMPLETE ===');
-        
     } catch(error) {
-        console.error('❌ ERROR:', error.message);
+        console.error('Payment save error:', error);
         showToast('❌ ' + error.message, false);
     }
+}
 }
 }
 }
@@ -696,6 +701,90 @@ function getEditPaymentNoteText() {
 
 // ── Update Chit Picked option based on selected months ──
 // ── Update Chit Picked option based on selected months ──
+async function onNumMonthsChange(){
+    const isSingle = document.getElementById('pNumMonths').value === '1';
+    document.getElementById('singleMonthDropdownWrap').style.display = isSingle ? '' : 'none';
+    document.getElementById('multiMonthPreview').style.display = isSingle ? 'none' : '';
+    
+    if(isSingle) {
+        await populateSingleMonthDropdown();
+    } else {
+        await buildMonthSelectorGrid();
+    }
+}
+
+async function populateSingleMonthDropdown() {
+    const mid = document.getElementById('pMember').value;
+    const gid = document.getElementById('pGroup').value;
+    const sel = document.getElementById('pSingleMonthSlot');
+    
+    if (!mid || !gid) {
+        sel.innerHTML = '<option value="">-- Select member & group first --</option>';
+        return;
+    }
+    
+    const gs = await getCollection('groups');
+    const grp = gs.find(g => g.id === gid);
+    if (!grp) return;
+    
+    const {paidSlots, allDueDates} = await getPaidSlots(mid, gid, grp);
+    
+    sel.innerHTML = allDueDates.map((dd, i) => {
+        const paid = paidSlots.has(i);
+        const label = fmtDate(dd) + (paid ? ' ✅ Paid' : '');
+        return `<option value="${i}" ${paid ? 'disabled' : ''}>${label}</option>`;
+    }).join('');
+    
+    sel.value = '';
+    onSingleMonthSlotChange();
+}
+
+function onSingleMonthSlotChange() {
+    const slotVal = document.getElementById('pSingleMonthSlot').value;
+    const badge = document.getElementById('singleMonthBadge');
+    
+    if (slotVal === '') {
+        badge.style.display = 'none';
+    } else {
+        badge.style.display = 'block';
+        badge.textContent = '📅 Month ' + (parseInt(slotVal) + 1);
+        badge.style.background = 'rgba(34,197,94,0.1)';
+        badge.style.borderColor = 'rgba(34,197,94,0.4)';
+        badge.style.color = '#34d399';
+    }
+    
+    updateChitPickedOptionForMode();
+}
+
+async function updateChitPickedOptionForMode() {
+    const mode = document.getElementById('pNumMonths').value;
+    
+    if (mode === '1') {
+        // Single month mode
+        const slotVal = document.getElementById('pSingleMonthSlot').value;
+        if (slotVal === '') return;
+        
+        const mid = document.getElementById('pMember').value;
+        const gid = document.getElementById('pGroup').value;
+        const chitSelect = document.getElementById('pChitPicked');
+        const yesOption = chitSelect.querySelector('option[value="Yes"]');
+        
+        const ps = await getCollection('payments');
+        const alreadyPicked = ps.some(p =>
+            p.memberId === mid &&
+            p.groupId === gid &&
+            p.chitPicked === 'Yes' &&
+            (p.monthSlot === parseInt(slotVal) ||
+             (Array.isArray(p.monthSlots) && p.monthSlots.includes(parseInt(slotVal))))
+        );
+        
+        yesOption.disabled = alreadyPicked;
+        if (alreadyPicked) chitSelect.value = 'No';
+    } else {
+        // Multiple month mode
+        await updateChitPickedOption();
+    }
+}
 async function updateChitPickedOption() {
     try {
         const monthSlots = getSelectedMonthSlots();
