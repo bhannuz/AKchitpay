@@ -4,13 +4,15 @@
 
 // MULTI-MONTH HELPERS
 // ══════════════════════════════════════════
-async function getPaidSlots(memberId, groupId, group, enrollmentId){
+async function getPaidSlots(memberId, groupId, group, enrollmentId, slotNum){
     const allDueDates=getGroupDueDates(group);
     const ps=await getCollection('payments');
-    // If enrollmentId provided, scope paid slots to that slot only — slots are independent
+    // Scope to specific slot — never mix slots
     const mPays=enrollmentId
         ? ps.filter(p=>p.enrollmentId===enrollmentId)
-        : ps.filter(p=>p.memberId===memberId&&p.groupId===groupId);
+        : slotNum
+            ? ps.filter(p=>p.memberId===memberId&&p.groupId===groupId&&(p.slotNum===slotNum||p.slotNum===undefined||p.slotNum===null)&&!p.enrollmentId)
+            : ps.filter(p=>p.memberId===memberId&&p.groupId===groupId);
     const paidSlots=new Set();
     mPays.forEach(p=>{
         if(Array.isArray(p.monthSlots)) p.monthSlots.forEach(s=>paidSlots.add(s));
@@ -43,7 +45,8 @@ async function buildSingleMonthDropdown(){
     const grp=gs.find(g=>g.id===gid);
     if(!grp){wrap.style.display='none';return;}
     const eid=document.getElementById('pEnrollmentId').value||'';
-    const {paidSlots,allDueDates}=await getPaidSlots(mid,gid,grp,eid);
+    const sn=parseInt(document.getElementById('pSlotNum').value||'1');
+    const {paidSlots,allDueDates}=await getPaidSlots(mid,gid,grp,eid,sn);
     window._singleMonthPaidSlots=paidSlots;
     if(!allDueDates.length){wrap.style.display='none';return;}
     wrap.style.display='block';
@@ -96,7 +99,8 @@ async function buildMonthSelectorGrid(){
     const grp=gs.find(g=>g.id===gid);
     if(!grp){grid.innerHTML='<div style="color:#f87171;font-size:0.92rem;">Group not found</div>';return;}
     const eid=document.getElementById('pEnrollmentId').value||'';
-    const {paidSlots,allDueDates}=await getPaidSlots(mid,gid,grp,eid);
+    const sn=parseInt(document.getElementById('pSlotNum').value||'1');
+    const {paidSlots,allDueDates}=await getPaidSlots(mid,gid,grp,eid,sn);
     if(!allDueDates.length){grid.innerHTML='<div style="color:#f87171;font-size:0.92rem;">No due dates configured for this group</div>';return;}
     const today=new Date().toISOString().split('T')[0];
     grid.innerHTML=allDueDates.map((dd,i)=>{
@@ -725,7 +729,8 @@ async function populateSingleMonthDropdown() {
     if (!grp) return;
     
     const eid=document.getElementById('pEnrollmentId').value||'';
-    const {paidSlots, allDueDates} = await getPaidSlots(mid, gid, grp, eid);
+    const sn=parseInt(document.getElementById('pSlotNum').value||'1');
+    const {paidSlots, allDueDates} = await getPaidSlots(mid, gid, grp, eid, sn);
     
     sel.innerHTML = allDueDates.map((dd, i) => {
         const paid = paidSlots.has(i);
