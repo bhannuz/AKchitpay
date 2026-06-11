@@ -240,6 +240,8 @@ function resetPaymentForm(){
     if(document.getElementById('pSingleMonthSlot')) document.getElementById('pSingleMonthSlot').innerHTML='<option value="">-- Select Month --</option>';
     if(document.getElementById('singleMonthBadge')) document.getElementById('singleMonthBadge').style.display='none';
     window._singleMonthPaidSlots=new Set();
+    // Initialize correct mode UI (multi is default, onchange won't fire)
+    onNumMonthsChange();
 }
 
 function openPaymentModal(){
@@ -397,22 +399,19 @@ async function savePayment(){
             
             const monthSlots = [selectedSlot];
             const balance = Math.max(0, chitPerMonth - paid);
-            
             const enrollmentId1 = document.getElementById('pEnrollmentId').value||'';
             const slotNum1 = parseInt(document.getElementById('pSlotNum').value||'1');
             
-            // Check if THIS slot already has chit picked
+            // Check if THIS enrollment slot already picked chit in any month
             if(chitPicked==='Yes'){
                 const ps=await getCollection('payments');
                 const alreadyPicked=ps.some(p=>
                     p.memberId===mid&&
                     p.groupId===gid&&
                     p.slotNum===slotNum1&&
-                    p.chitPicked==='Yes'&&
-                    (p.monthSlot===selectedSlot||
-                     (Array.isArray(p.monthSlots)&&p.monthSlots.includes(selectedSlot)))
+                    p.chitPicked==='Yes'
                 );
-                if(alreadyPicked){showToast('❌ Chit already picked for this slot/month',false);return;}
+                if(alreadyPicked){showToast('❌ Chit already picked for this slot',false);return;}
             }
             
             await db.collection('payments').add({
@@ -430,23 +429,19 @@ async function savePayment(){
             const numMonths=monthSlots.length;
             const totalChit=chitPerMonth*numMonths;
             const balance=Math.max(0,totalChit-paid);
-            
             const enrollmentId1 = document.getElementById('pEnrollmentId').value||'';
             const slotNum1 = parseInt(document.getElementById('pSlotNum').value||'1');
             
+            // Check if THIS enrollment slot already picked chit in any month
             if(chitPicked==='Yes'){
                 const ps=await getCollection('payments');
                 const alreadyPickedInSlots=ps.some(p=>
                     p.memberId===mid&&
                     p.groupId===gid&&
                     p.slotNum===slotNum1&&
-                    p.chitPicked==='Yes'&&
-                    monthSlots.some(slot=>
-                        (Array.isArray(p.monthSlots)&&p.monthSlots.includes(slot))||
-                        p.monthSlot===slot
-                    )
+                    p.chitPicked==='Yes'
                 );
-                if(alreadyPickedInSlots){showToast('❌ Chit already picked for one of these slots',false);return;}
+                if(alreadyPickedInSlots){showToast('❌ Chit already picked for this slot',false);return;}
             }
             
             await db.collection('payments').add({
@@ -772,13 +767,12 @@ async function updateChitPickedOptionForMode() {
         const yesOption = chitSelect.querySelector('option[value="Yes"]');
         
         const ps = await getCollection('payments');
+        // Only block if THIS slot (slotNum) has already picked — other slots are independent
         const alreadyPicked = ps.some(p =>
             p.memberId === mid &&
             p.groupId === gid &&
             p.slotNum === slotNum &&
-            p.chitPicked === 'Yes' &&
-            (p.monthSlot === parseInt(slotVal) ||
-             (Array.isArray(p.monthSlots) && p.monthSlots.includes(parseInt(slotVal))))
+            p.chitPicked === 'Yes'
         );
         
         yesOption.disabled = alreadyPicked;
@@ -793,7 +787,6 @@ async function updateChitPickedOption() {
         const monthSlots = getSelectedMonthSlots();
         const mid = document.getElementById('pMember').value;
         const gid = document.getElementById('pGroup').value;
-        const slotNum = parseInt(document.getElementById('pSlotNum').value||'1');
         const chitSelect = document.getElementById('pChitPicked');
         const yesOption = chitSelect ? chitSelect.querySelector('option[value="Yes"]') : null;
         
@@ -802,26 +795,18 @@ async function updateChitPickedOption() {
             return;
         }
         
-        // Check if any of the selected months for THIS slot already have chitPicked='Yes'
+        const slotNum = parseInt(document.getElementById('pSlotNum').value||'1');
+        // Only block if THIS slot (slotNum) has already picked — other slots are independent
         const ps = await getCollection('payments');
-        const alreadyPicked = ps.some(p => {
-            const matches = p.memberId === mid && 
-                          p.groupId === gid &&
-                          p.slotNum === slotNum &&
-                          p.chitPicked === 'Yes';
-            if (!matches) return false;
-            return monthSlots.some(slot =>
-                (Array.isArray(p.monthSlots) && p.monthSlots.includes(slot)) ||
-                p.monthSlot === slot
-            );
-        });
+        const alreadyPicked = ps.some(p =>
+            p.memberId === mid &&
+            p.groupId === gid &&
+            p.slotNum === slotNum &&
+            p.chitPicked === 'Yes'
+        );
         
         yesOption.disabled = alreadyPicked;
-        
-        if (alreadyPicked) {
-            chitSelect.value = 'No';
-            console.log('Disabled Yes option and set to No');
-        }
+        if (alreadyPicked) chitSelect.value = 'No';
     } catch(error) {
         console.error('Error in updateChitPickedOption:', error);
     }
