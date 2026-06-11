@@ -471,9 +471,7 @@ async function savePayment(){
         showToast('❌ ' + error.message, false);
     }
 }
-}
-}
-}
+
 // EDIT / DELETE EXISTING PAYMENT
 // ══════════════════════════════════════════
 async function openEditPayment(pid){
@@ -831,5 +829,4 @@ async function updateChitPickedOption() {
     } catch(error) {
         console.error('Error in updateChitPickedOption:', error);
     }
-}
 }
