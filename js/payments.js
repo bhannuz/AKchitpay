@@ -8,11 +8,19 @@ async function getPaidSlots(memberId, groupId, group, enrollmentId, slotNum){
     const allDueDates=getGroupDueDates(group);
     const ps=await getCollection('payments');
     // Scope to specific slot — never mix slots
-    const mPays=enrollmentId
-        ? ps.filter(p=>p.enrollmentId===enrollmentId)
-        : slotNum
-            ? ps.filter(p=>p.memberId===memberId&&p.groupId===groupId&&(p.slotNum===slotNum||p.slotNum===undefined||p.slotNum===null)&&!p.enrollmentId)
-            : ps.filter(p=>p.memberId===memberId&&p.groupId===groupId);
+    // Matches: new payments (by enrollmentId) OR old payments (no enrollmentId, matched by slotNum)
+    const mPays=ps.filter(p=>{
+        if(p.memberId!==memberId||p.groupId!==groupId) return false;
+        const hasEid = p.enrollmentId && p.enrollmentId!=='';
+        if(enrollmentId){
+            // new payment: exact enrollmentId match
+            if(hasEid) return p.enrollmentId===enrollmentId;
+            // old payment (no enrollmentId): match by slotNum
+            return slotNum ? (p.slotNum===slotNum||(!p.slotNum&&slotNum===1)) : true;
+        }
+        // no enrollmentId context — return all (single-slot groups)
+        return true;
+    });
     const paidSlots=new Set();
     mPays.forEach(p=>{
         if(Array.isArray(p.monthSlots)) p.monthSlots.forEach(s=>paidSlots.add(s));
