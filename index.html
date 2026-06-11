@@ -30,6 +30,52 @@
 </head>
 <body>
 
+<!-- ══ LOGIN SCREEN ══════════════════════════════════════════════════════════ -->
+<div id="loginScreen" style="display:none;">
+    <div class="login-card">
+        <div class="login-brand">
+            <img src="logo.png" alt="AK Chit Funds" style="width:56px;height:56px;border-radius:14px;object-fit:cover;margin-bottom:12px;">
+            <div class="login-brand-title">AK Chit Funds</div>
+            <div class="login-brand-sub">☁ CLOUD &nbsp;·&nbsp; Chit Fund Management</div>
+        </div>
+
+        <!-- Step 1: Enter phone -->
+        <div id="loginStep1" class="login-step active">
+            <div style="font-size:0.8rem;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">Enter Mobile Number</div>
+            <div class="login-phone-input">
+                <span class="phone-prefix">+91</span>
+                <input type="tel" id="loginPhone" class="form-input" placeholder="10-digit number" maxlength="10" inputmode="numeric" style="flex:1;margin-bottom:0;"
+                    onkeydown="if(event.key==='Enter') handleLoginSubmit()">
+            </div>
+            <button class="btn-save" style="margin-top:14px;width:100%;" onclick="handleLoginSubmit()">🔐 Request Access</button>
+        </div>
+
+        <!-- Step 2: Pending approval -->
+        <div id="loginStep2" class="login-step">
+            <div class="pending-box">
+                <div style="font-size:2rem;margin-bottom:10px;">⏳</div>
+                <div style="font-weight:800;color:#fbbf24;margin-bottom:6px;">Access Pending</div>
+                <div style="font-size:0.85rem;color:var(--text-dim);margin-bottom:4px;">Request sent for</div>
+                <div id="pendingPhone" style="font-weight:700;color:white;margin-bottom:14px;"></div>
+                <div style="font-size:0.78rem;color:var(--text-dim);margin-bottom:14px;">Waiting for admin approval. This page will refresh automatically.</div>
+                <button class="btn-save" style="width:100%;margin-bottom:8px;" onclick="checkAccessStatus()">🔄 Check Status</button>
+                <button class="btn-cancel" style="width:100%;" onclick="goBackToLogin()">← Back</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Denied -->
+        <div id="loginStep3" class="login-step">
+            <div class="denied-box">
+                <div style="font-size:2rem;margin-bottom:10px;">🚫</div>
+                <div style="font-weight:800;color:#f87171;margin-bottom:8px;">Access Denied</div>
+                <div style="font-size:0.85rem;color:var(--text-dim);margin-bottom:14px;">Your request was not approved. Contact the admin for assistance.</div>
+                <button class="btn-cancel" style="width:100%;" onclick="goBackToLogin()">← Try Again</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ══ END LOGIN SCREEN ═══════════════════════════════════════════════════════ -->
+
 <div class="container py-2" style="padding-left:12px;padding-right:12px;">
     <!-- ADMIN HEADER -->
     <div id="adminHeader" class="app-header">
