@@ -694,6 +694,7 @@
         </div>
 
         <!-- Multiple Month Mode -->
+        <div id="multiMonthPreview">
             <div class="multi-month-preview-title">📅 Select Months to Pay</div>
             <div style="font-size:0.92rem;color:var(--text-dim);margin-bottom:8px;">✅ Green = already paid &nbsp;|&nbsp; Tick the months being paid now</div>
             <div id="monthSelectorGrid" class="month-selector-grid"></div>
@@ -754,6 +755,17 @@
             <input type="text" id="pChitPickedBy" class="form-input" placeholder="Enter chit picked value">
         </div>
 
+        <!-- Payment Note -->
+        <label class="form-label-small" style="margin-top:10px;">Payment Note</label>
+        <select id="pPaymentNote" class="form-input" onchange="onPaymentNoteChange()">
+            <option value="">-- None --</option>
+            <option value="Advance">Advance</option>
+            <option value="Partial">Partial</option>
+            <option value="Late Fee">Late Fee</option>
+            <option value="Custom">Custom…</option>
+        </select>
+        <input type="text" id="pCustomNote" class="form-input" placeholder="Enter custom note" style="display:none;margin-top:6px;">
+
         <button class="btn-save" onclick="savePayment()">✓ Sync Payment</button>
         <button class="btn-cancel" onclick="closeModal('paymentModal')">Cancel</button>
     </div>
@@ -796,9 +808,18 @@
         </div>
         <label class="form-label-small">Balance (auto)</label>
         <input type="number" id="epBal" class="form-input" placeholder="Balance" readonly style="opacity:.7;">
-        
-        <!-- Payment Notes in Edit Modal -->
-        </div>
+
+        <!-- Payment Note -->
+        <label class="form-label-small" style="margin-top:10px;">Payment Note</label>
+        <select id="epPaymentNote" class="form-input" onchange="onEditNoteChange()">
+            <option value="">-- None --</option>
+            <option value="Advance">Advance</option>
+            <option value="Partial">Partial</option>
+            <option value="Late Fee">Late Fee</option>
+            <option value="Custom">Custom…</option>
+        </select>
+        <input type="text" id="epCustomNote" class="form-input" placeholder="Enter custom note" style="display:none;margin-top:6px;">
+
         <label class="form-label-small">Paid By</label>
         <div style="display:flex;gap:6px;">
             <input type="text" id="epPaidBy" class="form-input" style="margin-bottom:0;flex:1;" placeholder="Payment mode">
@@ -810,6 +831,60 @@
         <div id="epChitPickedNameDiv" style="display:none;margin-top:8px;"><label class="form-label-small">Chit Picked Value</label><input type="text" id="epChitPickedBy" class="form-input" placeholder="Enter chit picked value"></div>
         <button class="btn-save" onclick="saveEditPayment()">✓ Update Payment</button>
         <button class="btn-cancel" onclick="closeModal('editPaymentModal')">Cancel</button>
+    </div>
+</div>
+
+<!-- ══ MEMBERS QUICK MODAL ════════════════════════════════════════════════════ -->
+<div id="membersQuickModal" class="modal-overlay">
+    <div class="modal-content-custom">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div class="modal-title" style="margin-bottom:0;">👥 All Members</div>
+            <button onclick="closeModal('membersQuickModal')" style="background:none;border:none;color:var(--text-dim);font-size:1.3rem;cursor:pointer;">✕</button>
+        </div>
+        <input type="text" id="mqSearch" class="form-input" placeholder="🔍 Search name or phone…" oninput="filterMembersQuick()" style="margin-bottom:12px;">
+        <div id="membersQuickList" style="display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;"></div>
+    </div>
+</div>
+
+<!-- ══ GROUPS QUICK MODAL ═════════════════════════════════════════════════════ -->
+<div id="groupsQuickModal" class="modal-overlay">
+    <div class="modal-content-custom">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div class="modal-title" style="margin-bottom:0;">📂 All Groups</div>
+            <button onclick="closeModal('groupsQuickModal')" style="background:none;border:none;color:var(--text-dim);font-size:1.3rem;cursor:pointer;">✕</button>
+        </div>
+        <div id="groupsQuickList" style="display:flex;flex-direction:column;gap:10px;max-height:65vh;overflow-y:auto;"></div>
+    </div>
+</div>
+
+<!-- ══ CONFIRM MODAL ══════════════════════════════════════════════════════════ -->
+<div id="confirmModal" class="modal-overlay">
+    <div class="modal-content-custom" style="max-width:340px;">
+        <div style="text-align:center;margin-bottom:16px;">
+            <div id="confirmIcon" style="font-size:2.5rem;margin-bottom:8px;"></div>
+            <div id="confirmTitle" style="font-size:1.1rem;font-weight:800;margin-bottom:6px;"></div>
+            <div id="confirmMsg" style="font-size:0.9rem;color:var(--text-dim);"></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+            <button id="confirmOkBtn" class="btn-save" style="flex:1;">Confirm</button>
+            <button class="btn-cancel" style="flex:1;" onclick="closeModal('confirmModal')">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ ACCESS REQUESTS MODAL ══════════════════════════════════════════════════ -->
+<div id="accessModal" class="modal-overlay">
+    <div class="modal-content-custom">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div class="modal-title" style="margin-bottom:0;">🔐 Access Requests</div>
+            <button onclick="closeModal('accessModal')" style="background:none;border:none;color:var(--text-dim);font-size:1.3rem;cursor:pointer;">✕</button>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:14px;">
+            <button id="reqTabPending" class="btn-save" style="flex:1;font-size:0.8rem;padding:8px;" onclick="filterRequests('pending')">⏳ Pending</button>
+            <button id="reqTabApproved" class="btn-cancel" style="flex:1;font-size:0.8rem;padding:8px;" onclick="filterRequests('approved')">✅ Approved</button>
+            <button id="reqTabAll" class="btn-cancel" style="flex:1;font-size:0.8rem;padding:8px;" onclick="filterRequests('all')">📋 All</button>
+        </div>
+        <div id="accessRequestsList" style="max-height:60vh;overflow-y:auto;"></div>
     </div>
 </div>
 
