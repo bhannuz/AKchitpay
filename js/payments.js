@@ -447,11 +447,12 @@ async function savePayment(){
                 if(alreadyPicked){showToast('❌ Chit already picked for this slot',false);return;}
             }
             
+            const paymentNote1=getPaymentNoteText();
             await db.collection('payments').add({
                 memberId:mid, groupId:gid, enrollmentId:enrollmentId1, slotNum:slotNum1, date,
                 chit:chitPerMonth, paid, balance, paidBy, chitPicked, chitPickedBy,
                 numMonths:1, monthSlots, monthSlot:selectedSlot,
-                paidPerMonth:paid, balPerMonth:balance
+                paidPerMonth:paid, balPerMonth:balance, paymentNote:paymentNote1
             });
             
         } else {
@@ -472,11 +473,12 @@ async function savePayment(){
                 if(alreadyPickedInSlots){showToast('❌ Chit already picked for this slot',false);return;}
             }
             
+            const paymentNote2=getPaymentNoteText();
             await db.collection('payments').add({
                 memberId:mid, groupId:gid, enrollmentId:enrollmentId1, slotNum:slotNum1, date,
                 chit:chitPerMonth, paid, balance, paidBy, chitPicked, chitPickedBy,
                 numMonths, monthSlots, monthSlot:monthSlots[0],
-                paidPerMonth:paid/numMonths, balPerMonth:balance/numMonths
+                paidPerMonth:paid/numMonths, balPerMonth:balance/numMonths, paymentNote:paymentNote2
             });
         }
         
@@ -690,9 +692,9 @@ function savePaidByOptions() {
 // ── Payment Notes Handling ──────────────────────────────────
 function onPaymentNoteChange() {
     const sel = document.getElementById('pPaymentNote');
-    const custom = document.getElementById('pCustomNote');
-    if (!sel || !custom) return;
-    custom.style.display = sel.value === 'Custom' ? '' : 'none';
+    const wrap = document.getElementById('pCustomNoteWrap');
+    if (!sel) return;
+    if(wrap) wrap.style.display = sel.value === 'Custom' ? '' : 'none';
 }
 
 function onEditNoteChange() {
