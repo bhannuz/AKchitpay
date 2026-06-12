@@ -11,14 +11,17 @@ async function getPaidSlots(memberId, groupId, group, enrollmentId, slotNum){
     // Matches: new payments (by enrollmentId) OR old payments (no enrollmentId, matched by slotNum)
     const mPays=ps.filter(p=>{
         if(p.memberId!==memberId||p.groupId!==groupId) return false;
-        const hasEid = p.enrollmentId && p.enrollmentId!=='';
-        if(enrollmentId){
-            // new payment: exact enrollmentId match
-            if(hasEid) return p.enrollmentId===enrollmentId;
-            // old payment (no enrollmentId): match by slotNum
-            return slotNum ? (p.slotNum===slotNum||(!p.slotNum&&slotNum===1)) : true;
+        // If slotNum is provided (multi-slot group), ALWAYS filter by slot
+        // to prevent one slot's payments leaking into another
+        if(slotNum){
+            const pSlot = p.slotNum ? Number(p.slotNum) : 1; // default old payments to slot 1
+            const mySlot = Number(slotNum);
+            if(pSlot !== mySlot) return false;
         }
-        // no enrollmentId context — return all (single-slot groups)
+        // Within same slot: further narrow by enrollmentId if both sides have it
+        if(enrollmentId && p.enrollmentId && p.enrollmentId!==''){
+            return p.enrollmentId === enrollmentId;
+        }
         return true;
     });
     const paidSlots=new Set();
