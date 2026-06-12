@@ -205,7 +205,11 @@ async function renderCollectionsTab(){
                 if(hasPaid) membersPaidThisMonth++;
             });
             
-            const received  = slotPays.reduce((s,p)=>s+(parseFloat(p.paid)||0),0);
+            // Use paidPerMonth for multi-month payments so each row shows only its share
+            const received  = slotPays.reduce((s,p)=>{
+                const perMonth = p.numMonths&&p.numMonths>1 ? (parseFloat(p.paidPerMonth)||0) : (parseFloat(p.paid)||0);
+                return s + perMonth;
+            },0);
             const payout    = payouts[g.id+'_'+idx]||0;
             const balance   = received - payout;
             const isPast    = dueDate < todayStr;
