@@ -33,6 +33,24 @@ async function getPaidSlots(memberId, groupId, group, enrollmentId, slotNum){
     return {paidSlots, allDueDates};
 }
 
+// Check if a specific slot already has chitPicked=Yes — slot-isolated
+async function isChitAlreadyPicked(ps, memberId, groupId, enrollmentId, slotNum){
+    return ps.some(p => {
+        if(p.chitPicked !== 'Yes') return false;
+        if(p.memberId !== memberId || p.groupId !== groupId) return false;
+        // Primary: slotNum match (most reliable, always present on new payments)
+        const pSlot = p.slotNum ? Number(p.slotNum) : 1;
+        const mySlot = Number(slotNum) || 1;
+        if(pSlot !== mySlot) return false;
+        // Secondary: if both have enrollmentId, they must match
+        if(enrollmentId && p.enrollmentId && p.enrollmentId !== ''){
+            return p.enrollmentId === enrollmentId;
+        }
+        return true;
+    });
+}
+
+
 function getSelectedMonthSlots(){
     return Array.from(document.querySelectorAll('#monthSelectorGrid input[type=checkbox]:checked:not(:disabled)')).map(cb=>parseInt(cb.value));
 }
@@ -338,9 +356,7 @@ async function onGroupChange(){
     if(mid&&gid){
         const ps=await getCollection('payments');
         const eid=document.getElementById('pEnrollmentId').value||'';
-        const alreadyPicked=eid
-            ? ps.some(p=>p.enrollmentId===eid&&p.chitPicked==='Yes')
-            : ps.some(p=>p.memberId===mid&&p.groupId===gid&&p.slotNum===parseInt(document.getElementById('pSlotNum').value||'1')&&p.chitPicked==='Yes');
+        const alreadyPicked=await isChitAlreadyPicked(ps,mid,gid,eid,parseInt(document.getElementById('pSlotNum').value||'1'));
         const sel=document.getElementById('pChitPicked');
         if(alreadyPicked){
             sel.value='No';
@@ -427,9 +443,7 @@ async function savePayment(){
             // Check if THIS enrollment slot already picked chit
             if(chitPicked==='Yes'){
                 const ps=await getCollection('payments');
-                const alreadyPicked=enrollmentId1
-                    ? ps.some(p=>p.enrollmentId===enrollmentId1&&p.chitPicked==='Yes')
-                    : ps.some(p=>p.memberId===mid&&p.groupId===gid&&p.slotNum===slotNum1&&p.chitPicked==='Yes');
+                const alreadyPicked=await isChitAlreadyPicked(ps,mid,gid,enrollmentId1,slotNum1);
                 if(alreadyPicked){showToast('❌ Chit already picked for this slot',false);return;}
             }
             
@@ -454,9 +468,7 @@ async function savePayment(){
             // Check if THIS enrollment slot already picked chit
             if(chitPicked==='Yes'){
                 const ps=await getCollection('payments');
-                const alreadyPickedInSlots=enrollmentId1
-                    ? ps.some(p=>p.enrollmentId===enrollmentId1&&p.chitPicked==='Yes')
-                    : ps.some(p=>p.memberId===mid&&p.groupId===gid&&p.slotNum===slotNum1&&p.chitPicked==='Yes');
+                const alreadyPickedInSlots=await isChitAlreadyPicked(ps,mid,gid,enrollmentId1,slotNum1);
                 if(alreadyPickedInSlots){showToast('❌ Chit already picked for this slot',false);return;}
             }
             
@@ -786,11 +798,7 @@ async function updateChitPickedOptionForMode() {
         const yesOption = chitSelect.querySelector('option[value="Yes"]');
         
         const ps = await getCollection('payments');
-        // Only block if THIS enrollment slot already picked — other slots are independent
-        const alreadyPicked = eid2
-            ? ps.some(p => p.enrollmentId === eid2 && p.chitPicked === 'Yes')
-            : ps.some(p => p.memberId === mid && p.groupId === gid && p.slotNum === slotNum && p.chitPicked === 'Yes');
-        
+        const alreadyPicked = await isChitAlreadyPicked(ps, mid, gid, eid2, slotNum);
         yesOption.disabled = alreadyPicked;
         if (alreadyPicked) chitSelect.value = 'No';
     } else {
@@ -815,10 +823,7 @@ async function updateChitPickedOption() {
         const slotNum = parseInt(document.getElementById('pSlotNum').value||'1');
         // Only block if THIS enrollment slot already picked — other slots are independent
         const ps = await getCollection('payments');
-        const alreadyPicked = eid3
-            ? ps.some(p => p.enrollmentId === eid3 && p.chitPicked === 'Yes')
-            : ps.some(p => p.memberId === mid && p.groupId === gid && p.slotNum === slotNum && p.chitPicked === 'Yes');
-        
+        const alreadyPicked = await isChitAlreadyPicked(ps, mid, gid, eid3, slotNum);
         yesOption.disabled = alreadyPicked;
         if (alreadyPicked) chitSelect.value = 'No';
     } catch(error) {
