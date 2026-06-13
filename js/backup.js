@@ -150,25 +150,41 @@ async function loadStatistics() {
     const groups   = await getCollection('groups');
     const allPays  = await getCollection('payments');
 
-    // ── Populate filter dropdowns (first load only)
+    // ── Populate filter dropdowns (always refresh)
     const grpSel  = document.getElementById('statGroupFilter');
     const modeSel = document.getElementById('statModeFilter');
-    if (grpSel && grpSel.options.length <= 1) {
-        groups.forEach(g => { const o = document.createElement('option'); o.value = g.id; o.text = g.name || g.id; grpSel.appendChild(o); });
+    const mbrSel  = document.getElementById('statMemberFilter');
+    if (grpSel) {
+        const curG = grpSel.value;
+        grpSel.innerHTML = '<option value="">All Groups</option>' +
+            groups.map(g=>`<option value="${g.id}"${g.id===curG?' selected':''}>${g.name||g.id}</option>`).join('');
     }
-    if (modeSel && modeSel.options.length <= 1) {
-        const modes = [...new Set(allPays.map(p => p.paidBy).filter(Boolean))].sort();
-        modes.forEach(m => { const o = document.createElement('option'); o.value = m; o.text = m; modeSel.appendChild(o); });
+    if (modeSel) {
+        const curM = modeSel.value;
+        const modes = [...new Set(allPays.map(p=>p.paidBy).filter(Boolean))].sort();
+        modeSel.innerHTML = '<option value="">All Modes</option>' +
+            modes.map(m=>`<option value="${m}"${m===curM?' selected':''}>${m}</option>`).join('');
     }
 
     // ── Read filters directly from inputs
     const grpFilter  = (document.getElementById('statGroupFilter')  || {}).value || '';
     const modeFilter = (document.getElementById('statModeFilter')   || {}).value || '';
     const chitFilter = (document.getElementById('statChitFilter')   || {}).value || '';
-    const memFilter  = ((document.getElementById('statMemberFilter')|| {}).value || '').toLowerCase().trim();
+    const memFilter  = ((document.getElementById('statMemberFilter')|| {}).value || '').trim();
+
+    // Populate member dropdown scoped to selected group
+    if(mbrSel){
+        const curMem = mbrSel.value;
+        const scopedMids = new Set(allPays.filter(p=>!grpFilter||p.groupId===grpFilter).map(p=>p.memberId));
+        mbrSel.innerHTML = '<option value="">All Members</option>' +
+            members.filter(m=>scopedMids.has(m.id))
+                   .sort((a,b)=>(a.name||'').localeCompare(b.name||''))
+                   .map(m=>`<option value="${m.name}"${m.name===curMem?' selected':''}>${m.name}</option>`)
+                   .join('');
+    }
 
     const filteredMemberIds = memFilter
-        ? members.filter(m => m.name.toLowerCase().includes(memFilter)).map(m => m.id)
+        ? members.filter(m => m.name===memFilter).map(m => m.id)
         : null;
 
     // ── Apply filters
