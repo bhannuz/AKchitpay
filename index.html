@@ -773,12 +773,13 @@
             <div>
                 <label class="form-label-small">Paid By</label>
                 <div style="display:flex;gap:4px;">
-                    <div style="position:relative;flex:1;">
-                        <input type="text" id="pPaidBy" class="form-input" style="margin-bottom:0;font-size:0.8rem;padding:7px 9px;" placeholder="Mode…" autocomplete="off" oninput="showPaidByDropdown('pPaidBy','pPaidByDrop')" onfocus="showPaidByDropdown('pPaidBy','pPaidByDrop')">
-                        <div id="pPaidByDrop" style="display:none;position:absolute;z-index:200;width:100%;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.4);max-height:150px;overflow-y:auto;"></div>
-                    </div>
+                    <select id="pPaidBy" class="form-input" style="margin-bottom:0;font-size:0.8rem;padding:7px 9px;flex:1;">
+                        <option value="">-- Mode --</option>
+                    </select>
                     <button type="button" onclick="openManagePaidBy('pPaidBy')" style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.35);color:#a5b4fc;border-radius:7px;padding:7px 8px;font-size:0.8rem;cursor:pointer;flex-shrink:0;">⚙️</button>
                 </div>
+                <!-- hidden autocomplete div kept for JS compat -->
+                <div id="pPaidByDrop" style="display:none;"></div>
             </div>
             <div>
                 <label class="form-label-small">Chit Picked?</label>
@@ -793,23 +794,10 @@
             <input type="text" id="pChitPickedBy" class="form-input" placeholder="Chit picked value / winner" style="margin-bottom:0;font-size:0.8rem;padding:7px 9px;">
         </div>
 
-        <!-- Payment Note inline — select + custom on same row -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
-            <div>
-                <label class="form-label-small">Payment Note</label>
-                <select id="pPaymentNote" class="form-input" onchange="onPaymentNoteChange()" style="margin-bottom:0;font-size:0.8rem;padding:7px 9px;">
-                    <option value="">-- None --</option>
-                    <option value="Advance">Advance</option>
-                    <option value="Partial">Partial</option>
-                    <option value="Late Fee">Late Fee</option>
-                    <option value="Custom">Custom…</option>
-                </select>
-            </div>
-            <div id="pCustomNoteWrap" style="display:none;">
-                <label class="form-label-small">Custom Note</label>
-                <input type="text" id="pCustomNote" class="form-input" placeholder="Enter note…" style="margin-bottom:0;font-size:0.8rem;padding:7px 9px;">
-            </div>
-        </div>
+        <!-- Hidden payment note fields — kept for JS compatibility -->
+        <select id="pPaymentNote" style="display:none;"><option value="">-- None --</option><option value="Advance">Advance</option><option value="Partial">Partial</option><option value="Late Fee">Late Fee</option><option value="Custom">Custom…</option></select>
+        <input type="text" id="pCustomNote" style="display:none;">
+        <div id="pCustomNoteWrap" style="display:none;"></div>
 
         <!-- Action buttons -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -952,8 +940,8 @@
         <div>Planner</div>
     </div>
     <div id="navBackup" class="nav-item" onclick="switchTab('backup')">
-        <div style="font-size:1.3rem;">💾</div>
-        <div>Backup</div>
+        <div style="font-size:1.3rem;">📊</div>
+        <div>Statistics</div>
     </div>
 </nav>
 <!-- ══ END BOTTOM NAV BAR ════════════════════════════════════════════════════ -->
