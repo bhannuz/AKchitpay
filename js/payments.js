@@ -280,6 +280,7 @@ function resetPaymentForm(){
     window._singleMonthPaidSlots=new Set();
     // Initialize correct mode UI (multi is default, onchange won't fire)
     onNumMonthsChange();
+    populatePaidBySelect('pPaidBy');
 }
 
 function openPaymentModal(){
@@ -599,6 +600,14 @@ function savePaidByToStorage() {
     try { localStorage.setItem('ak_paidby_options', JSON.stringify(_paidByOptions)); } catch(e){}
 }
 
+function populatePaidBySelect(selectId){
+    const sel = document.getElementById(selectId);
+    if(!sel || sel.tagName !== 'SELECT') return;
+    const opts = getPaidByOptions();
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">-- Mode --</option>' + opts.map(o=>`<option value="${o}"${o===cur?' selected':''}>${o}</option>`).join('');
+}
+
 function showPaidByDropdown(inputId, dropId) {
     const input = document.getElementById(inputId);
     const drop  = document.getElementById(dropId);
@@ -684,6 +693,7 @@ function movePaidByOption(i, dir) {
 
 function savePaidByOptions() {
     savePaidByToStorage();
+    populatePaidBySelect('pPaidBy');
     closeModal('managePaidByModal');
     showToast('✅ Payment modes saved!');
 }
