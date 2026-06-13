@@ -466,92 +466,96 @@
 
         <!-- ── Statistics Sub-tab ── -->
         <div id="bkStatsPanel">
-            <!-- Filters — logic unchanged -->
-            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:8px;margin-bottom:8px;">
-                <div style="display:flex;gap:6px;align-items:center;">
-                    <select id="statFilterType" class="form-input" style="margin-bottom:0;font-size:0.75rem;padding:6px 8px;flex:1;" onchange="onStatFilterTypeChange()">
-                        <option value="">🔍 Add Filter...</option>
-                        <option value="group">🏦 Group</option>
-                        <option value="mode">💳 Payment Mode</option>
-                        <option value="chit">✅ Chit Picked</option>
-                        <option value="member">👤 Member</option>
-                    </select>
-                    <button onclick="clearStatFilters()" title="Clear" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);color:#ef4444;border-radius:10px;padding:6px 10px;font-size:0.75rem;font-weight:800;cursor:pointer;flex-shrink:0;">✕</button>
-                    <button onclick="loadStatistics()" title="Refresh" style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.35);color:#a5b4fc;border-radius:10px;padding:6px 10px;font-size:0.75rem;font-weight:800;cursor:pointer;flex-shrink:0;">🔄</button>
-                </div>
-                <div id="statSubFilterWrap" style="display:none;margin-top:8px;">
-                    <div id="sfGroup" style="display:none;">
-                        <select id="statGroupFilter" class="form-input" style="margin-bottom:0;font-size:0.75rem;padding:6px 8px;" onchange="applyStatSubFilter()">
-                            <option value="">-- All Groups --</option>
+
+            <!-- Filters -->
+            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:10px;">
+                <div style="font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">🔍 Filters</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                    <div>
+                        <label style="font-size:0.65rem;color:var(--text-dim);font-weight:700;text-transform:uppercase;display:block;margin-bottom:3px;">🏦 Group</label>
+                        <select id="statGroupFilter" class="form-input" style="margin-bottom:0;font-size:0.78rem;padding:7px 9px;" onchange="applyStatSubFilter()">
+                            <option value="">All Groups</option>
                         </select>
                     </div>
-                    <div id="sfMode" style="display:none;">
-                        <select id="statModeFilter" class="form-input" style="margin-bottom:0;font-size:0.75rem;padding:6px 8px;" onchange="applyStatSubFilter()">
-                            <option value="">-- All Modes --</option>
+                    <div>
+                        <label style="font-size:0.65rem;color:var(--text-dim);font-weight:700;text-transform:uppercase;display:block;margin-bottom:3px;">💳 Mode</label>
+                        <select id="statModeFilter" class="form-input" style="margin-bottom:0;font-size:0.78rem;padding:7px 9px;" onchange="applyStatSubFilter()">
+                            <option value="">All Modes</option>
                         </select>
                     </div>
-                    <div id="sfChit" style="display:none;">
-                        <select id="statChitFilter" class="form-input" style="margin-bottom:0;font-size:0.75rem;padding:6px 8px;" onchange="applyStatSubFilter()">
-                            <option value="">-- All --</option>
+                    <div>
+                        <label style="font-size:0.65rem;color:var(--text-dim);font-weight:700;text-transform:uppercase;display:block;margin-bottom:3px;">✅ Chit Picked</label>
+                        <select id="statChitFilter" class="form-input" style="margin-bottom:0;font-size:0.78rem;padding:7px 9px;" onchange="applyStatSubFilter()">
+                            <option value="">All</option>
                             <option value="Yes">Picked ✅</option>
                             <option value="No">Not Picked</option>
                         </select>
                     </div>
-                    <div id="sfMember" style="display:none;">
-                        <input type="text" id="statMemberFilter" class="form-input" style="margin-bottom:0;font-size:0.75rem;padding:6px 8px;" placeholder="Type member name..." oninput="applyStatSubFilter()">
+                    <div>
+                        <label style="font-size:0.65rem;color:var(--text-dim);font-weight:700;text-transform:uppercase;display:block;margin-bottom:3px;">👤 Member</label>
+                        <input type="text" id="statMemberFilter" class="form-input" style="margin-bottom:0;font-size:0.78rem;padding:7px 9px;" placeholder="Search name…" oninput="applyStatSubFilter()">
                     </div>
                 </div>
-                <div id="statActiveFilters" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+                <div style="display:flex;gap:8px;">
+                    <button onclick="clearStatFilters()" style="flex:1;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);color:#ef4444;border-radius:8px;padding:7px;font-size:0.75rem;font-weight:800;cursor:pointer;">✕ Clear</button>
+                    <button onclick="loadStatistics()" style="flex:1;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.35);color:#a5b4fc;border-radius:8px;padding:7px;font-size:0.75rem;font-weight:800;cursor:pointer;">🔄 Refresh</button>
+                </div>
             </div>
 
-            <!-- Hidden state holders — unchanged -->
+            <!-- Hidden state — keep for backup.js compatibility -->
             <input type="hidden" id="sfActiveGroup">
             <input type="hidden" id="sfActiveMode">
             <input type="hidden" id="sfActiveChit">
             <input type="hidden" id="sfActiveMember">
+            <!-- Legacy filter elements kept hidden so backup.js doesn't error -->
+            <div style="display:none">
+                <select id="statFilterType"></select>
+                <div id="statSubFilterWrap"><div id="sfGroup"></div><div id="sfMode"></div><div id="sfChit"></div><div id="sfMember"></div></div>
+                <div id="statActiveFilters"></div>
+            </div>
 
-            <!-- ── Summary Table ── -->
-            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;">
-                <div style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">📊 Summary</div>
+            <!-- Summary Table -->
+            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;">
+                <div style="padding:8px 14px;border-bottom:1px solid var(--border);font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">📊 Summary</div>
                 <table style="width:100%;border-collapse:collapse;">
                     <tbody>
-                        <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
-                            <td style="padding:9px 14px;font-size:0.8rem;color:var(--text-dim);">💰 Total Collected</td>
-                            <td style="padding:9px 14px;font-size:0.9rem;font-weight:800;color:#f39c12;text-align:right;" id="statTotalCollected">₹0</td>
+                        <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                            <td style="padding:10px 14px;font-size:0.8rem;color:var(--text-dim);width:55%;">💰 Total Collected</td>
+                            <td id="statTotalCollected" style="padding:10px 14px;font-size:1rem;font-weight:800;color:#f39c12;text-align:right;">₹0</td>
                         </tr>
-                        <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
-                            <td style="padding:9px 14px;font-size:0.8rem;color:var(--text-dim);">📋 Balance Due</td>
-                            <td style="padding:9px 14px;font-size:0.9rem;font-weight:800;color:#ef4444;text-align:right;" id="statTotalBalance">₹0</td>
+                        <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                            <td style="padding:10px 14px;font-size:0.8rem;color:var(--text-dim);">📋 Balance Due</td>
+                            <td id="statTotalBalance" style="padding:10px 14px;font-size:1rem;font-weight:800;color:#f87171;text-align:right;">₹0</td>
                         </tr>
-                        <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
-                            <td style="padding:9px 14px;font-size:0.8rem;color:var(--text-dim);">📝 Total Payments</td>
-                            <td style="padding:9px 14px;font-size:0.9rem;font-weight:800;color:#10b981;text-align:right;" id="statTotalPayments">0</td>
+                        <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                            <td style="padding:10px 14px;font-size:0.8rem;color:var(--text-dim);">📝 Total Payments</td>
+                            <td id="statTotalPayments" style="padding:10px 14px;font-size:1rem;font-weight:800;color:#34d399;text-align:right;">0</td>
                         </tr>
-                        <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
-                            <td style="padding:9px 14px;font-size:0.8rem;color:var(--text-dim);">🎯 Chits Picked</td>
-                            <td style="padding:9px 14px;font-size:0.9rem;font-weight:800;color:#a5b4fc;text-align:right;" id="statChitsPicked">0</td>
+                        <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                            <td style="padding:10px 14px;font-size:0.8rem;color:var(--text-dim);">🎯 Chits Picked</td>
+                            <td id="statChitsPicked" style="padding:10px 14px;font-size:1rem;font-weight:800;color:#a5b4fc;text-align:right;">0</td>
                         </tr>
-                        <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
-                            <td style="padding:9px 14px;font-size:0.8rem;color:var(--text-dim);">👥 Total Members</td>
-                            <td style="padding:9px 14px;font-size:0.9rem;font-weight:800;color:#34d399;text-align:right;" id="statTotalMembers">0</td>
+                        <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                            <td style="padding:10px 14px;font-size:0.8rem;color:var(--text-dim);">👥 Unique Members</td>
+                            <td id="statTotalMembers" style="padding:10px 14px;font-size:1rem;font-weight:800;color:#60a5fa;text-align:right;">0</td>
                         </tr>
                         <tr>
-                            <td style="padding:9px 14px;font-size:0.8rem;color:var(--text-dim);">⏳ Pending Chits</td>
-                            <td style="padding:9px 14px;font-size:0.9rem;font-weight:800;color:#f59e0b;text-align:right;" id="statPendingChits">0</td>
+                            <td style="padding:10px 14px;font-size:0.8rem;color:var(--text-dim);">⏳ Pending Chits</td>
+                            <td id="statPendingChits" style="padding:10px 14px;font-size:1rem;font-weight:800;color:#f59e0b;text-align:right;">0</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <!-- ── Monthly Collections Table ── -->
-            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;">
-                <div style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">📅 Monthly Collections</div>
+            <!-- Monthly Collections -->
+            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;">
+                <div style="padding:8px 14px;border-bottom:1px solid var(--border);font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">📅 Monthly Collections</div>
                 <table style="width:100%;border-collapse:collapse;">
                     <thead>
-                        <tr style="background:rgba(255,255,255,0.03);">
-                            <th style="padding:6px 14px;font-size:0.65rem;color:var(--text-dim);font-weight:700;text-align:left;">Month</th>
-                            <th style="padding:6px 14px;font-size:0.65rem;color:var(--text-dim);font-weight:700;text-align:right;">Amount</th>
-                            <th style="padding:6px 14px;font-size:0.65rem;color:var(--text-dim);font-weight:700;text-align:right;width:35%;">Share</th>
+                        <tr style="background:rgba(255,255,255,0.02);">
+                            <th style="padding:7px 14px;font-size:0.65rem;color:var(--text-dim);font-weight:700;text-align:left;text-transform:uppercase;">Month</th>
+                            <th style="padding:7px 14px;font-size:0.65rem;color:var(--text-dim);font-weight:700;text-align:right;text-transform:uppercase;">Amount</th>
+                            <th style="padding:7px 14px;font-size:0.65rem;color:var(--text-dim);font-weight:700;text-align:right;text-transform:uppercase;width:30%;">Share</th>
                         </tr>
                     </thead>
                     <tbody id="statMonthlyChart"></tbody>
@@ -559,26 +563,46 @@
                 <div id="statMonthlyLabels" style="display:none;"></div>
             </div>
 
-            <!-- ── Group Breakdown Table ── -->
-            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;">
-                <div style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">🏦 Group-wise Breakdown</div>
+            <!-- Group Breakdown -->
+            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;">
+                <div style="padding:8px 14px;border-bottom:1px solid var(--border);font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">🏦 Group-wise Breakdown</div>
                 <table style="width:100%;border-collapse:collapse;">
+                    <thead>
+                        <tr style="background:rgba(255,255,255,0.02);">
+                            <th style="padding:7px 14px;font-size:0.65rem;color:var(--text-dim);font-weight:700;text-align:left;text-transform:uppercase;">Group</th>
+                            <th style="padding:7px 14px;font-size:0.65rem;color:var(--text-dim);font-weight:700;text-align:right;text-transform:uppercase;">Collected</th>
+                            <th style="padding:7px 14px;font-size:0.65rem;color:var(--text-dim);font-weight:700;text-align:right;text-transform:uppercase;width:30%;">Share</th>
+                        </tr>
+                    </thead>
                     <tbody id="statGroupList"></tbody>
                 </table>
             </div>
 
-            <!-- ── Payment Modes Table ── -->
-            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;">
-                <div style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">💳 Payment Modes</div>
+            <!-- Payment Modes -->
+            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;">
+                <div style="padding:8px 14px;border-bottom:1px solid var(--border);font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">💳 Payment Modes</div>
                 <table style="width:100%;border-collapse:collapse;">
+                    <thead>
+                        <tr style="background:rgba(255,255,255,0.02);">
+                            <th style="padding:7px 14px;font-size:0.65rem;color:var(--text-dim);font-weight:700;text-align:left;text-transform:uppercase;">Mode</th>
+                            <th style="padding:7px 14px;font-size:0.65rem;color:var(--text-dim);font-weight:700;text-align:right;text-transform:uppercase;">Amount</th>
+                            <th style="padding:7px 14px;font-size:0.65rem;color:var(--text-dim);font-weight:700;text-align:right;text-transform:uppercase;">%</th>
+                        </tr>
+                    </thead>
                     <tbody id="statPayModePie"></tbody>
                 </table>
             </div>
 
-            <!-- ── Top Members Table ── -->
-            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;">
-                <div style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">🏆 Top Members</div>
+            <!-- Top Members -->
+            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px;">
+                <div style="padding:8px 14px;border-bottom:1px solid var(--border);font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">🏆 Top Contributors</div>
                 <table style="width:100%;border-collapse:collapse;">
+                    <thead>
+                        <tr style="background:rgba(255,255,255,0.02);">
+                            <th style="padding:7px 14px;font-size:0.65rem;color:var(--text-dim);font-weight:700;text-align:left;text-transform:uppercase;">Member</th>
+                            <th style="padding:7px 14px;font-size:0.65rem;color:var(--text-dim);font-weight:700;text-align:right;text-transform:uppercase;">Total Paid</th>
+                        </tr>
+                    </thead>
                     <tbody id="statTopMembers"></tbody>
                 </table>
             </div>
@@ -942,12 +966,12 @@
 <script src="js/members.js?v=20260610_v1"></script>
 <script src="js/groups.js?v=20260610_v1"></script>
 <script src="js/payments.js?v=20260613_v7"></script>
-<script src="js/backup.js?v=20260613_v2"></script>
+<script src="js/backup.js?v=20260613_v3"></script>
 <script src="js/planner.js?v=20260610_v1"></script>
 <script src="js/print.js?v=20260610_v1"></script>
 <script src="js/auth.js?v=20260610_v1"></script>
 <script src="js/quickview.js?v=20260610_v1"></script>
-<script src="js/qr.js?v=20260610_v1"></script>
+<script src="js/qr.js?v=20260613_v3"></script>
 <script src="js/init.js?v=20260610_v1"></script>
 
 </body>
