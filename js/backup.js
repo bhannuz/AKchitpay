@@ -266,27 +266,27 @@ async function loadStatistics() {
     const monthAmounts = sortedMonths.map(m => monthMap[m] || 0);
     const maxAmt = Math.max(...monthAmounts, 1);
     const chartEl = document.getElementById('statMonthlyChart');
-    const labelsEl = document.getElementById('statMonthlyLabels');
-    chartEl.innerHTML = ''; labelsEl.innerHTML = '';
+    chartEl.innerHTML = '';
     const mNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     if (!sortedMonths.length) {
-        chartEl.innerHTML = '<div style="color:var(--text-dim);font-size:0.8rem;text-align:center;width:100%;padding:20px 0;">No data for selected filters</div>';
+        chartEl.innerHTML = '<tr><td colspan="3" style="padding:14px;text-align:center;color:var(--text-dim);font-size:0.78rem;">No data for selected filters</td></tr>';
     } else {
         sortedMonths.forEach((ym, i) => {
             const amt = monthAmounts[i];
-            const pct = Math.max(4, Math.round((amt / maxAmt) * 100));
+            const pct = Math.max(2, Math.round((amt / maxAmt) * 100));
             const [y, m] = ym.split('-');
-            const label = mNames[parseInt(m, 10) - 1] + ' ' + y.slice(2);
-            const bar = document.createElement('div');
-            bar.style.cssText = `flex:1;background:rgba(99,102,241,0.75);border-radius:6px 6px 0 0;height:${pct}%;min-height:4px;cursor:default;transition:opacity .2s;`;
-            bar.title = label + ': ' + fmtAmt(amt);
-            bar.onmouseenter = () => bar.style.opacity = '0.75';
-            bar.onmouseleave = () => bar.style.opacity = '1';
-            chartEl.appendChild(bar);
-            const lbl = document.createElement('div');
-            lbl.style.cssText = 'flex:1;text-align:center;font-size:0.55rem;color:var(--text-dim);white-space:nowrap;overflow:hidden;';
-            lbl.innerText = label;
-            labelsEl.appendChild(lbl);
+            const label = mNames[parseInt(m, 10) - 1] + ' ' + y;
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid rgba(255,255,255,0.04)';
+            tr.innerHTML = `
+                <td style="padding:7px 14px;font-size:0.78rem;color:var(--text-dim);">${label}</td>
+                <td style="padding:7px 14px;font-size:0.82rem;font-weight:800;color:#6366f1;text-align:right;">${fmtAmt(amt)}</td>
+                <td style="padding:7px 14px;">
+                    <div style="background:rgba(255,255,255,0.07);border-radius:3px;height:6px;overflow:hidden;">
+                        <div style="background:linear-gradient(90deg,#6366f1,#a5b4fc);width:${pct}%;height:100%;border-radius:3px;"></div>
+                    </div>
+                </td>`;
+            chartEl.appendChild(tr);
         });
     }
 
@@ -301,20 +301,21 @@ async function loadStatistics() {
         return { name: g.name || g.id, collected, balance, mCount };
     }).filter(g => g.collected > 0).sort((a, b) => b.collected - a.collected);
     const maxG = Math.max(...groupTotals.map(x => x.collected), 1);
-    groupTotals.forEach(g => {
+    groupTotals.forEach((g, i) => {
         const pct = Math.max(2, Math.round((g.collected / maxG) * 100));
-        const row = document.createElement('div');
-        row.innerHTML = `
-            <div style="display:flex;justify-content:space-between;font-size:0.62rem;font-weight:700;margin-bottom:1px;gap:4px;">
-                <span style="color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">${g.name}</span>
-                <span style="color:#10b981;flex-shrink:0;">${fmtAmt(g.collected)}</span>
-            </div>
-            <div style="background:rgba(255,255,255,0.07);border-radius:2px;height:3px;overflow:hidden;margin-bottom:2px;">
-                <div style="background:linear-gradient(90deg,#6366f1,#10b981);width:${pct}%;height:100%;border-radius:2px;"></div>
-            </div>`;
-        groupEl.appendChild(row);
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid rgba(255,255,255,0.04)';
+        tr.innerHTML = `
+            <td style="padding:7px 14px;font-size:0.78rem;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px;">${g.name}</td>
+            <td style="padding:7px 14px;font-size:0.82rem;font-weight:800;color:#10b981;text-align:right;white-space:nowrap;">${fmtAmt(g.collected)}</td>
+            <td style="padding:7px 14px;">
+                <div style="background:rgba(255,255,255,0.07);border-radius:3px;height:6px;overflow:hidden;">
+                    <div style="background:linear-gradient(90deg,#6366f1,#10b981);width:${pct}%;height:100%;border-radius:3px;"></div>
+                </div>
+            </td>`;
+        groupEl.appendChild(tr);
     });
-    if (!groupTotals.length) groupEl.innerHTML = '<div style="color:var(--text-dim);font-size:0.65rem;text-align:center;">No data</div>';
+    if (!groupTotals.length) groupEl.innerHTML = '<tr><td colspan="3" style="padding:14px;text-align:center;color:var(--text-dim);font-size:0.78rem;">No data</td></tr>';
 
     // ── Payment mode chips
     const modeMap = {};
@@ -326,12 +327,15 @@ async function loadStatistics() {
     Object.entries(modeMap).sort((a, b) => b[1] - a[1]).forEach(([mode, amt], i) => {
         const pct   = Math.round((amt / modeTotal) * 100);
         const color = modeColors[i % modeColors.length];
-        const chip  = document.createElement('div');
-        chip.style.cssText = `background:rgba(${hexToRgb(color)},0.15);border:1px solid ${color}44;border-radius:8px;padding:3px 8px;font-size:0.62rem;font-weight:700;white-space:nowrap;`;
-        chip.innerHTML = `<span style="color:${color};">${mode}</span> <span style="color:var(--text-dim);">${pct}%</span>`;
-        pieEl.appendChild(chip);
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid rgba(255,255,255,0.04)';
+        tr.innerHTML = `
+            <td style="padding:7px 14px;font-size:0.78rem;color:var(--text-dim);">${mode}</td>
+            <td style="padding:7px 14px;font-size:0.82rem;font-weight:800;text-align:right;color:${color};">${fmtAmt(amt)}</td>
+            <td style="padding:7px 14px;font-size:0.75rem;font-weight:700;text-align:right;color:var(--text-dim);">${pct}%</td>`;
+        pieEl.appendChild(tr);
     });
-    if (!Object.keys(modeMap).length) pieEl.innerHTML = '<div style="color:var(--text-dim);font-size:0.65rem;">No data</div>';
+    if (!Object.keys(modeMap).length) pieEl.innerHTML = '<tr><td colspan="3" style="padding:14px;text-align:center;color:var(--text-dim);font-size:0.78rem;">No data</td></tr>';
 
     // ── Top members
     const memberTotals = members.map(m => {
@@ -342,21 +346,16 @@ async function loadStatistics() {
     const topEl = document.getElementById('statTopMembers');
     topEl.innerHTML = '';
     const maxM = Math.max(...memberTotals.map(x => x.amt), 1);
+    const medals = ['🥇','🥈','🥉','4️⃣','5️⃣'];
     memberTotals.forEach((m, i) => {
-        const pct    = Math.max(2, Math.round((m.amt / maxM) * 100));
-        const medals = ['🥇','🥈','🥉','4️⃣','5️⃣'];
-        const row = document.createElement('div');
-        row.innerHTML = `
-            <div style="display:flex;justify-content:space-between;font-size:0.65rem;margin-bottom:1px;gap:4px;">
-                <span style="color:var(--text-primary);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">${medals[i]} ${m.name}</span>
-                <span style="color:#f39c12;font-weight:800;flex-shrink:0;">${fmtAmt(m.amt)}</span>
-            </div>
-            <div style="background:rgba(255,255,255,0.07);border-radius:2px;height:3px;overflow:hidden;margin-bottom:2px;">
-                <div style="background:linear-gradient(90deg,#f39c12,#f59e0b);width:${pct}%;height:100%;border-radius:2px;"></div>
-            </div>`;
-        topEl.appendChild(row);
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid rgba(255,255,255,0.04)';
+        tr.innerHTML = `
+            <td style="padding:7px 14px;font-size:0.78rem;color:var(--text-primary);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px;">${medals[i]} ${m.name}</td>
+            <td style="padding:7px 14px;font-size:0.82rem;font-weight:800;color:#f39c12;text-align:right;white-space:nowrap;">${fmtAmt(m.amt)}</td>`;
+        topEl.appendChild(tr);
     });
-    if (!memberTotals.length) topEl.innerHTML = '<div style="color:var(--text-dim);font-size:0.65rem;text-align:center;">No data</div>';
+    if (!memberTotals.length) topEl.innerHTML = '<tr><td colspan="2" style="padding:14px;text-align:center;color:var(--text-dim);font-size:0.78rem;">No data</td></tr>';
 }
 
 // Stubs so other files don't error
