@@ -131,6 +131,63 @@
         </div>
     </div>
 
+    <!-- MEMBER SUB-TAB NAV — shown only in member-mode -->
+    <div id="memberSubNav" style="display:none;padding:10px 0 0;">
+        <div style="display:flex;gap:6px;margin-bottom:12px;">
+            <button id="mSubDash"  onclick="switchMemberSubTab('dash')"  style="flex:1;padding:8px 4px;border:none;border-radius:10px;font-size:0.72rem;font-weight:800;cursor:pointer;background:rgba(243,156,18,0.85);color:black;transition:all .2s;">🏠 Dashboard</button>
+            <button id="mSubPay"   onclick="switchMemberSubTab('pay')"   style="flex:1;padding:8px 4px;border:none;border-radius:10px;font-size:0.72rem;font-weight:800;cursor:pointer;background:var(--card-bg);color:var(--text-dim);border:1px solid var(--border);transition:all .2s;">💳 Payments</button>
+            <button id="mSubStats" onclick="switchMemberSubTab('stats')" style="flex:1;padding:8px 4px;border:none;border-radius:10px;font-size:0.72rem;font-weight:800;cursor:pointer;background:var(--card-bg);color:var(--text-dim);border:1px solid var(--border);transition:all .2s;">📊 Statistics</button>
+            <button id="mSubQr"    onclick="switchMemberSubTab('qr')"    style="flex:1;padding:8px 4px;border:none;border-radius:10px;font-size:0.72rem;font-weight:800;cursor:pointer;background:var(--card-bg);color:var(--text-dim);border:1px solid var(--border);transition:all .2s;">📱 QR Pay</button>
+        </div>
+    </div>
+
+    <!-- MEMBER SUB-TABS (hidden until member login) -->
+    <div id="memberSubNav" style="display:none;padding:10px 0 2px;">
+        <div style="display:flex;gap:6px;">
+            <button id="mSubDash"  onclick="switchMemberSubTab('dash')"  style="flex:1;padding:8px 4px;border:none;border-radius:10px;font-size:0.75rem;font-weight:800;cursor:pointer;background:rgba(243,156,18,0.85);color:black;">🏠 Dashboard</button>
+            <button id="mSubStats" onclick="switchMemberSubTab('stats')" style="flex:1;padding:8px 4px;border:none;border-radius:10px;font-size:0.75rem;font-weight:800;cursor:pointer;background:var(--card-bg);color:var(--text-dim);border:1px solid var(--border);">📊 Statistics</button>
+        </div>
+    </div>
+
+    <!-- MEMBER STATISTICS PANEL (hidden until stats sub-tab clicked) -->
+    <div id="mStatsPanel" style="display:none;margin-top:8px;">
+
+        <!-- Summary -->
+        <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;">
+            <div style="padding:8px 14px;border-bottom:1px solid var(--border);font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">📊 My Summary</div>
+            <table style="width:100%;border-collapse:collapse;"><tbody id="mStatsSummary"></tbody></table>
+        </div>
+
+        <!-- Group-wise breakdown -->
+        <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;">
+            <div style="padding:8px 14px;border-bottom:1px solid var(--border);font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">🏦 Group-wise Progress</div>
+            <table style="width:100%;border-collapse:collapse;">
+                <thead><tr style="background:rgba(255,255,255,0.02);">
+                    <th style="padding:6px 12px;font-size:0.6rem;color:var(--text-dim);font-weight:700;text-align:left;">Group</th>
+                    <th style="padding:6px 12px;font-size:0.6rem;color:var(--text-dim);font-weight:700;text-align:right;">Paid</th>
+                    <th style="padding:6px 12px;font-size:0.6rem;color:var(--text-dim);font-weight:700;text-align:right;">Balance</th>
+                    <th style="padding:6px 12px;font-size:0.6rem;color:var(--text-dim);font-weight:700;text-align:right;">Progress</th>
+                </tr></thead>
+                <tbody id="mStatsGroups"></tbody>
+            </table>
+        </div>
+
+        <!-- Monthly history -->
+        <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;">
+            <div style="padding:8px 14px;border-bottom:1px solid var(--border);font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">📅 Recent Payments</div>
+            <table style="width:100%;border-collapse:collapse;">
+                <thead><tr style="background:rgba(255,255,255,0.02);">
+                    <th style="padding:6px 12px;font-size:0.6rem;color:var(--text-dim);font-weight:700;text-align:left;">Date</th>
+                    <th style="padding:6px 12px;font-size:0.6rem;color:var(--text-dim);font-weight:700;text-align:right;">Amount</th>
+                    <th style="padding:6px 12px;font-size:0.6rem;color:var(--text-dim);font-weight:700;text-align:left;">Mode</th>
+                    <th style="padding:6px 12px;font-size:0.6rem;color:var(--text-dim);font-weight:700;text-align:left;">Group</th>
+                </tr></thead>
+                <tbody id="mStatsMonthly"></tbody>
+            </table>
+        </div>
+
+    </div>
+
     <!-- HOME TAB -->
     <div id="homeTab" class="tab-content active">
         <div id="adminStatCards" class="row g-2 mt-3 text-center" style="margin-left:0;margin-right:0;">
@@ -161,9 +218,51 @@
             <div id="ledgerData"></div>
         </div>
 
-        <div id="memberLedgerArea" style="display:none;margin-top:12px;">
-            <div id="memberLedgerData"></div>
+        <!-- Member Dashboard Panel -->
+        <div id="mDashPanel"></div>
+
+        <!-- Member Payments Panel -->
+        <div id="mPayPanel" style="display:none;margin-top:4px;">
+            <div id="memberLedgerArea">
+                <div id="memberLedgerData"></div>
+            </div>
         </div>
+
+        <!-- Member Statistics Panel -->
+        <div id="mStatsPanel" style="display:none;margin-top:4px;">
+            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;">
+                <div style="padding:8px 14px;border-bottom:1px solid var(--border);font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">📊 My Summary</div>
+                <table style="width:100%;border-collapse:collapse;">
+                    <tbody id="mStatsSummary"></tbody>
+                </table>
+            </div>
+            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;">
+                <div style="padding:8px 14px;border-bottom:1px solid var(--border);font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">🏦 Group-wise Paid</div>
+                <table style="width:100%;border-collapse:collapse;">
+                    <thead><tr style="background:rgba(255,255,255,0.02);">
+                        <th style="padding:6px 14px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:left;">Group</th>
+                        <th style="padding:6px 14px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:right;">Paid</th>
+                        <th style="padding:6px 14px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:right;">Balance</th>
+                        <th style="padding:6px 14px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:right;">Progress</th>
+                    </tr></thead>
+                    <tbody id="mStatsGroups"></tbody>
+                </table>
+            </div>
+            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;">
+                <div style="padding:8px 14px;border-bottom:1px solid var(--border);font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">📅 Monthly History</div>
+                <table style="width:100%;border-collapse:collapse;">
+                    <thead><tr style="background:rgba(255,255,255,0.02);">
+                        <th style="padding:6px 14px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:left;">Month</th>
+                        <th style="padding:6px 14px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:right;">Amount</th>
+                        <th style="padding:6px 14px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:left;">Mode</th>
+                    </tr></thead>
+                    <tbody id="mStatsMonthly"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Member QR Panel -->
+        <div id="mQrPanel" style="display:none;margin-top:4px;"></div>
 
 
 
@@ -979,7 +1078,7 @@
 <!-- Scripts — load in dependency order -->
 <script src="js/firebase.js?v=20260610_v1"></script>
 <script src="js/helpers.js?v=20260610_v1"></script>
-<script src="js/ui.js?v=20260610_v1"></script>
+<script src="js/ui.js?v=20260614_v3"></script>
 <script src="js/ledger.js?v=20260610_v1"></script>
 <script src="js/members.js?v=20260610_v1"></script>
 <script src="js/groups.js?v=20260610_v1"></script>
@@ -987,7 +1086,7 @@
 <script src="js/backup.js?v=20260614_v5"></script>
 <script src="js/planner.js?v=20260613_v2"></script>
 <script src="js/print.js?v=20260610_v1"></script>
-<script src="js/auth.js?v=20260610_v1"></script>
+<script src="js/auth.js?v=20260614_v2"></script>
 <script src="js/quickview.js?v=20260610_v1"></script>
 <script src="js/qr.js?v=20260613_v3"></script>
 <script src="js/init.js?v=20260610_v1"></script>
