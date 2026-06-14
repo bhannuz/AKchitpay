@@ -340,6 +340,15 @@
     <div id="plannerTab" class="tab-content">
         <div style="padding-top:12px;">
 
+            <!-- Sub-tab buttons -->
+            <div style="display:flex;gap:8px;margin-bottom:14px;">
+                <button id="plSubPlanner" onclick="switchPlannerSubTab('planner')" style="flex:1;padding:9px;border:none;border-radius:12px;font-size:0.82rem;font-weight:800;cursor:pointer;background:rgba(99,102,241,0.85);color:white;transition:all .2s;">📋 Planner</button>
+                <button id="plSubCompleted" onclick="switchPlannerSubTab('completed')" style="flex:1;padding:9px;border:none;border-radius:12px;font-size:0.82rem;font-weight:800;cursor:pointer;background:var(--card-bg);color:var(--text-dim);border:1px solid var(--border);transition:all .2s;">✅ Completed Groups</button>
+            </div>
+
+            <!-- Planner sub-tab -->
+            <div id="plPlannerPanel">
+
             <!-- Saved Versions bar -->
             <div id="ncpSavedBar" style="margin-bottom:12px;"></div>
 
@@ -451,6 +460,18 @@
                 <div style="font-size:0.68rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">💡 Planner Insights</div>
                 <div id="ncpSuggestionText" style="font-size:0.82rem;color:var(--text-dim);line-height:1.8;"></div>
             </div>
+
+            </div><!-- end plPlannerPanel -->
+
+            <!-- Completed Groups sub-tab -->
+            <div id="plCompletedPanel" style="display:none;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                    <span style="font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.5px;">✅ Completed Chit Groups</span>
+                    <button onclick="renderCompletedGroups()" style="background:none;border:none;color:var(--text-dim);font-size:0.75rem;cursor:pointer;">🔄 Refresh</button>
+                </div>
+                <div id="completedGroupsList"></div>
+            </div>
+
         </div>
     </div>
 
@@ -964,7 +985,7 @@
 <script src="js/groups.js?v=20260610_v1"></script>
 <script src="js/payments.js?v=20260613_v7"></script>
 <script src="js/backup.js?v=20260613_v4"></script>
-<script src="js/planner.js?v=20260610_v1"></script>
+<script src="js/planner.js?v=20260613_v2"></script>
 <script src="js/print.js?v=20260610_v1"></script>
 <script src="js/auth.js?v=20260610_v1"></script>
 <script src="js/quickview.js?v=20260610_v1"></script>
