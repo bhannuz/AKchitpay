@@ -179,10 +179,10 @@
         /* ── MONTH SELECTOR ── */
         .multi-month-preview { background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.25); border-radius:12px; padding:14px; margin-bottom:12px; display:none; }
         .multi-month-preview-title { font-size:0.75rem; color:#a5b4fc; font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; }
-        .month-selector-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-height:240px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
-        .month-cb-item { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:10px; padding:10px 8px; cursor:pointer; transition:all .15s; font-size:0.72rem; min-height:52px; }
-        .month-cb-item.already-paid { background:rgba(16,185,129,0.07); border-color:rgba(16,185,129,0.3); color:#34d399; opacity:0.6; cursor:not-allowed; }
-        .month-cb-item input[type=checkbox] { accent-color:#818cf8; width:16px; height:16px; flex-shrink:0; }
+        .month-selector-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:4px; max-height:160px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+        .month-cb-item { display:flex; align-items:center; gap:3px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:6px; padding:4px 5px; cursor:pointer; transition:all .15s; font-size:0.65rem; min-height:0; }
+        .month-cb-item.already-paid { background:rgba(16,185,129,0.07); border-color:rgba(16,185,129,0.3); color:#34d399; opacity:0.7; cursor:not-allowed; }
+        .month-cb-item input[type=checkbox] { accent-color:#818cf8; width:11px; height:11px; flex-shrink:0; }
         #singleMonthBadge { animation: fadeInUp .2s ease; }
         @keyframes fadeInUp { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
         .selected-summary { font-size:0.75rem; color:#a5b4fc; margin-top:8px; font-weight:700; padding:8px 12px; background:rgba(99,102,241,0.12); border-radius:8px; }
