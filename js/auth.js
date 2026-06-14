@@ -191,14 +191,19 @@ function applyUserSession(user){
         document.getElementById('memberLedgerArea').style.display = 'block';
         document.getElementById('memberQrArea').style.display = 'block';
         document.getElementById('summaryView').value = user.memberId;
-        
+
         // Remove admin-mode so nav tabs are hidden for members
         document.body.classList.remove('admin-mode');
         document.documentElement.classList.remove('admin-mode-early');
-        
+
+        // Show member sub-tab nav
+        const mNav = document.getElementById('memberSubNav');
+        if(mNav) mNav.style.display = '';
+
         loadMemberLedger();
         if(typeof loadMemberQr === 'function') loadMemberQr(user.memberId);
-        updateUI();  // Call updateUI to set stats
+        updateUI();
+        if(typeof switchMemberSubTab === 'function') switchMemberSubTab('dash');
     }
 }
 
@@ -210,6 +215,7 @@ function handleLogout(){
     CURRENT_USER = null;
     document.getElementById('adminHeader').style.display = 'flex';
     document.getElementById('memberHeader').style.display = 'none';
+    const mNavL = document.getElementById('memberSubNav'); if(mNavL) mNavL.style.display = 'none';
     document.getElementById('navGroups').style.display = '';
     document.getElementById('navBackup').style.display = '';
     document.getElementById('navPlanner').style.display = '';
