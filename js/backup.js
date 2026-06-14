@@ -130,10 +130,30 @@ function hexToRgb(hex) {
 }
 
 function clearStatFilters() {
-    ['statGroupFilter','statModeFilter','statChitFilter'].forEach(id => {
+    ['statGroupFilter','statModeFilter','statChitFilter','statMemberFilter'].forEach(id => {
         const el = document.getElementById(id); if(el) el.value='';
     });
-    const mf = document.getElementById('statMemberFilter'); if(mf) mf.value='';
+    loadStatistics();
+}
+
+// Called when Group filter changes — repopulate Member dropdown immediately
+async function onStatGroupFilterChange() {
+    const gid = (document.getElementById('statGroupFilter')||{}).value||'';
+    const ps  = await getCollection('payments');
+    const ms  = await getCollection('members');
+    const sel = document.getElementById('statMemberFilter');
+    if(!sel) { loadStatistics(); return; }
+    // Scope members to those with payments in this group (or all if no group selected)
+    const mids = new Set(
+        gid ? ps.filter(p=>p.groupId===gid).map(p=>p.memberId)
+            : ps.map(p=>p.memberId)
+    );
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">All Members</option>' +
+        ms.filter(m=>mids.has(m.id))
+          .sort((a,b)=>(a.name||'').localeCompare(b.name||''))
+          .map(m=>`<option value="${m.name}"${m.name===cur?' selected':''}>${m.name}</option>`)
+          .join('');
     loadStatistics();
 }
 
