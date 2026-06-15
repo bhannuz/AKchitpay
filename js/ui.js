@@ -81,22 +81,35 @@ const _mSubCfg = {
 };
 
 function switchMemberSubTab(tab) {
-    // homeTab is the dash panel
+    const allPanels = ['mDashPanel','mPayPanel','mStatsPanel','mQrPanel'];
+    // homeTab contains admin content — hide it for all member sub-tabs
     const homeTab = document.getElementById('homeTab');
+    if(homeTab) homeTab.style.display = 'none';
+
+    allPanels.forEach(pid => {
+        const p = document.getElementById(pid);
+        if(p) p.style.display = 'none';
+    });
+
+    // Show selected panel
+    const active = document.getElementById(_mSubCfg[tab]?.panel || '');
+    if(active) active.style.display = '';
+
+    // Style buttons
     Object.keys(_mSubCfg).forEach(k => {
         const cfg = _mSubCfg[k];
-        const panel = k === 'dash' ? homeTab : document.getElementById(cfg.panel);
-        const btn   = document.getElementById(cfg.btn);
-        const active = k === tab;
-        if(panel) panel.style.display = active ? '' : 'none';
+        const btn = document.getElementById(cfg.btn);
         if(btn){
-            btn.style.background = active ? cfg.color : 'var(--card-bg)';
-            btn.style.color      = active ? cfg.fg    : 'var(--text-dim)';
-            btn.style.border     = active ? 'none'    : '1px solid var(--border)';
+            const isActive = k === tab;
+            btn.style.background = isActive ? cfg.color : 'var(--card-bg)';
+            btn.style.color      = isActive ? cfg.fg    : 'var(--text-dim)';
+            btn.style.border     = isActive ? 'none'    : '1px solid var(--border)';
         }
     });
+
+    if(tab === 'dash')  loadMemberLedger();
+    if(tab === 'pay')   renderMemberPayHistory();
     if(tab === 'stats') renderMemberStats();
-    if(tab === 'pay')   { document.getElementById('memberLedgerArea') && loadMemberLedger(); }
     if(tab === 'qr')    renderMemberQrPanel();
 }
 
@@ -205,26 +218,44 @@ async function renderMemberStats(filterGid, filterMonth) {
     }
 }
 
-async function renderMemberQrPanel() {
-    const el = document.getElementById('mQrPanel');
+async function renderMemberPayHistory() {
+    const el = document.getElementById('memberLedgerArea2');
     if(!el || !CURRENT_USER) return;
-    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-dim);font-size:0.8rem;">Loading…</div>';
+    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-dim);">Loading…</div>';
     const mid  = CURRENT_USER.memberId;
-    const pays = await getCollection('payments');
+    const ps   = await getCollection('payments');
     const gs   = await getCollection('groups');
-    const myGids = [...new Set(pays.filter(p=>p.memberId===mid).map(p=>p.groupId))];
-    if(!myGids.length){ el.innerHTML='<div style="text-align:center;padding:30px;color:var(--text-dim);">No groups found</div>'; return; }
-    el.innerHTML = myGids.map(gid=>{
-        const g   = gs.find(x=>x.id===gid);
-        const gPay= pays.filter(p=>p.memberId===mid&&p.groupId===gid);
-        const bal = gPay.reduce((s,p)=>s+(parseFloat(p.balance)||0),0);
-        const upi = g?.upiId||'';
-        const amt = g?.chitAmount||g?.amount||0;
-        const payUrl = upi?`upi://pay?pa=${upi}&am=${amt}&tn=${encodeURIComponent(g?.name||'Chit')}` : '';
-        return `<div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
-            <div style="font-weight:800;font-size:0.85rem;color:white;margin-bottom:4px;">${g?.name||gid}</div>
-            <div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:10px;">Balance: <span style="color:${bal>0?'#f87171':'#34d399'};font-weight:800;">${fmtAmt(bal)}</span></div>
-            ${payUrl?`<a href="${payUrl}" style="display:block;text-align:center;background:linear-gradient(135deg,#25D366,#128C7E);color:white;border-radius:10px;padding:10px;font-size:0.82rem;font-weight:800;text-decoration:none;">💳 Pay ₹${Number(amt).toLocaleString('en-IN')} via UPI</a>`:'<div style="font-size:0.72rem;color:var(--text-dim);text-align:center;">UPI not configured for this group</div>'}
-        </div>`;
-    }).join('');
+    const myPays = ps.filter(p=>p.memberId===mid).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    if(!myPays.length){ el.innerHTML='<div style="text-align:center;padding:24px;color:var(--text-dim);">No payments yet</div>'; return; }
+    el.style.cssText = 'background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;';
+    el.innerHTML = `<div style="padding:8px 14px;border-bottom:1px solid var(--border);font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">💳 My Payment History</div>
+    <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:rgba(255,255,255,0.02);">
+            <th style="padding:6px 10px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:left;">Date</th>
+            <th style="padding:6px 10px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:right;">Paid</th>
+            <th style="padding:6px 10px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:right;">Balance</th>
+            <th style="padding:6px 10px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:left;">Group</th>
+            <th style="padding:6px 10px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:left;">Mode</th>
+            <th style="padding:6px 10px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:center;">Chit</th>
+        </tr></thead>
+        <tbody>${myPays.map((p,i)=>{
+            const g = gs.find(x=>x.id===p.groupId);
+            return `<tr style="border-bottom:${i<myPays.length-1?'1px solid rgba(255,255,255,0.04)':'none'};">
+                <td style="padding:7px 10px;font-size:0.72rem;color:var(--text-dim);white-space:nowrap;">${p.date||'—'}</td>
+                <td style="padding:7px 10px;font-size:0.75rem;font-weight:800;color:#34d399;text-align:right;white-space:nowrap;">${fmtAmt(parseFloat(p.paid)||0)}</td>
+                <td style="padding:7px 10px;font-size:0.72rem;color:${parseFloat(p.balance)>0?'#f87171':'#34d399'};text-align:right;white-space:nowrap;">${fmtAmt(parseFloat(p.balance)||0)}</td>
+                <td style="padding:7px 10px;font-size:0.72rem;color:var(--text-dim);max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${g?.name||'—'}</td>
+                <td style="padding:7px 10px;font-size:0.72rem;color:var(--text-dim);">${p.paidBy||'—'}</td>
+                <td style="padding:7px 10px;font-size:0.72rem;text-align:center;">${p.chitPicked==='Yes'?'✅':'—'}</td>
+            </tr>`;
+        }).join('')}</tbody>
+    </table>`;
+}
+
+async function renderMemberQrPanel() {
+    // memberQrArea is already inside mQrPanel (contains admin QR requests rendered by loadMemberQr)
+    // Just trigger a refresh of the QR data if needed
+    if(CURRENT_USER && typeof loadMemberQr === 'function'){
+        loadMemberQr(CURRENT_USER.memberId);
+    }
 }
