@@ -141,53 +141,6 @@
         </div>
     </div>
 
-    <!-- MEMBER SUB-TABS (hidden until member login) -->
-    <div id="memberSubNav" style="display:none;padding:10px 0 2px;">
-        <div style="display:flex;gap:6px;">
-            <button id="mSubDash"  onclick="switchMemberSubTab('dash')"  style="flex:1;padding:8px 4px;border:none;border-radius:10px;font-size:0.75rem;font-weight:800;cursor:pointer;background:rgba(243,156,18,0.85);color:black;">🏠 Dashboard</button>
-            <button id="mSubStats" onclick="switchMemberSubTab('stats')" style="flex:1;padding:8px 4px;border:none;border-radius:10px;font-size:0.75rem;font-weight:800;cursor:pointer;background:var(--card-bg);color:var(--text-dim);border:1px solid var(--border);">📊 Statistics</button>
-        </div>
-    </div>
-
-    <!-- MEMBER STATISTICS PANEL (hidden until stats sub-tab clicked) -->
-    <div id="mStatsPanel" style="display:none;margin-top:8px;">
-
-        <!-- Summary -->
-        <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;">
-            <div style="padding:8px 14px;border-bottom:1px solid var(--border);font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">📊 My Summary</div>
-            <table style="width:100%;border-collapse:collapse;"><tbody id="mStatsSummary"></tbody></table>
-        </div>
-
-        <!-- Group-wise breakdown -->
-        <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;">
-            <div style="padding:8px 14px;border-bottom:1px solid var(--border);font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">🏦 Group-wise Progress</div>
-            <table style="width:100%;border-collapse:collapse;">
-                <thead><tr style="background:rgba(255,255,255,0.02);">
-                    <th style="padding:6px 12px;font-size:0.6rem;color:var(--text-dim);font-weight:700;text-align:left;">Group</th>
-                    <th style="padding:6px 12px;font-size:0.6rem;color:var(--text-dim);font-weight:700;text-align:right;">Paid</th>
-                    <th style="padding:6px 12px;font-size:0.6rem;color:var(--text-dim);font-weight:700;text-align:right;">Balance</th>
-                    <th style="padding:6px 12px;font-size:0.6rem;color:var(--text-dim);font-weight:700;text-align:right;">Progress</th>
-                </tr></thead>
-                <tbody id="mStatsGroups"></tbody>
-            </table>
-        </div>
-
-        <!-- Monthly history -->
-        <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;">
-            <div style="padding:8px 14px;border-bottom:1px solid var(--border);font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">📅 Recent Payments</div>
-            <table style="width:100%;border-collapse:collapse;">
-                <thead><tr style="background:rgba(255,255,255,0.02);">
-                    <th style="padding:6px 12px;font-size:0.6rem;color:var(--text-dim);font-weight:700;text-align:left;">Date</th>
-                    <th style="padding:6px 12px;font-size:0.6rem;color:var(--text-dim);font-weight:700;text-align:right;">Amount</th>
-                    <th style="padding:6px 12px;font-size:0.6rem;color:var(--text-dim);font-weight:700;text-align:left;">Mode</th>
-                    <th style="padding:6px 12px;font-size:0.6rem;color:var(--text-dim);font-weight:700;text-align:left;">Group</th>
-                </tr></thead>
-                <tbody id="mStatsMonthly"></tbody>
-            </table>
-        </div>
-
-    </div>
-
     <!-- HOME TAB -->
     <div id="homeTab" class="tab-content active">
         <div id="adminStatCards" class="row g-2 mt-3 text-center" style="margin-left:0;margin-right:0;">
@@ -229,39 +182,63 @@
         </div>
 
         <!-- Member Statistics Panel -->
+        <!-- Member Statistics Panel -->
         <div id="mStatsPanel" style="display:none;margin-top:4px;">
-            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;">
-                <div style="padding:8px 14px;border-bottom:1px solid var(--border);font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">📊 My Summary</div>
-                <table style="width:100%;border-collapse:collapse;">
-                    <tbody id="mStatsSummary"></tbody>
-                </table>
+            <!-- Filters -->
+            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:8px;">
+                <div style="font-size:0.62rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px;">🔍 Filters</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:7px;">
+                    <div>
+                        <label style="font-size:0.6rem;color:var(--text-dim);font-weight:700;text-transform:uppercase;display:block;margin-bottom:3px;">🏦 Group</label>
+                        <select id="mStatsGroupFilter" class="form-input" style="margin-bottom:0;font-size:0.75rem;padding:6px 8px;" onchange="renderMemberStats()">
+                            <option value="">All Groups</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:0.6rem;color:var(--text-dim);font-weight:700;text-transform:uppercase;display:block;margin-bottom:3px;">📅 Month</label>
+                        <select id="mStatsMonthFilter" class="form-input" style="margin-bottom:0;font-size:0.75rem;padding:6px 8px;" onchange="renderMemberStats()">
+                            <option value="">All Months</option>
+                        </select>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('mStatsGroupFilter').value='';document.getElementById('mStatsMonthFilter').value='';renderMemberStats();" style="width:100%;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);color:#ef4444;border-radius:8px;padding:6px;font-size:0.72rem;font-weight:800;cursor:pointer;">✕ Clear Filters</button>
             </div>
+            <!-- Summary + Groups 2-col -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+                    <div style="padding:7px 10px;border-bottom:1px solid var(--border);font-size:0.6rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">📊 Summary</div>
+                    <table style="width:100%;border-collapse:collapse;"><tbody id="mStatsSummary"></tbody></table>
+                </div>
+                <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+                    <div style="padding:7px 10px;border-bottom:1px solid var(--border);font-size:0.6rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">🏦 Groups <span style="font-size:0.5rem;font-weight:400;color:var(--text-dim);">tap=filter</span></div>
+                    <table style="width:100%;border-collapse:collapse;">
+                        <thead><tr style="background:rgba(255,255,255,0.02);">
+                            <th style="padding:5px 8px;font-size:0.57rem;color:var(--text-dim);font-weight:700;text-align:left;">Group</th>
+                            <th style="padding:5px 8px;font-size:0.57rem;color:var(--text-dim);font-weight:700;text-align:right;">Paid</th>
+                            <th style="padding:5px 8px;font-size:0.57rem;color:var(--text-dim);font-weight:700;text-align:right;">Bal</th>
+                            <th style="padding:5px 8px;font-size:0.57rem;color:var(--text-dim);font-weight:700;text-align:left;">%</th>
+                        </tr></thead>
+                        <tbody id="mStatsGroups"></tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- Payment History full width -->
             <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;">
-                <div style="padding:8px 14px;border-bottom:1px solid var(--border);font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">🏦 Group-wise Paid</div>
+                <div style="padding:7px 12px;border-bottom:1px solid var(--border);font-size:0.6rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">📅 Payment History</div>
                 <table style="width:100%;border-collapse:collapse;">
                     <thead><tr style="background:rgba(255,255,255,0.02);">
-                        <th style="padding:6px 14px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:left;">Group</th>
-                        <th style="padding:6px 14px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:right;">Paid</th>
-                        <th style="padding:6px 14px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:right;">Balance</th>
-                        <th style="padding:6px 14px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:right;">Progress</th>
-                    </tr></thead>
-                    <tbody id="mStatsGroups"></tbody>
-                </table>
-            </div>
-            <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;">
-                <div style="padding:8px 14px;border-bottom:1px solid var(--border);font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">📅 Monthly History</div>
-                <table style="width:100%;border-collapse:collapse;">
-                    <thead><tr style="background:rgba(255,255,255,0.02);">
-                        <th style="padding:6px 14px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:left;">Month</th>
-                        <th style="padding:6px 14px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:right;">Amount</th>
-                        <th style="padding:6px 14px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:left;">Mode</th>
+                        <th style="padding:5px 10px;font-size:0.57rem;color:var(--text-dim);font-weight:700;text-align:left;">Date</th>
+                        <th style="padding:5px 10px;font-size:0.57rem;color:var(--text-dim);font-weight:700;text-align:right;">Paid</th>
+                        <th style="padding:5px 10px;font-size:0.57rem;color:var(--text-dim);font-weight:700;text-align:left;">Mode</th>
+                        <th style="padding:5px 10px;font-size:0.57rem;color:var(--text-dim);font-weight:700;text-align:left;">Group</th>
+                        <th style="padding:5px 10px;font-size:0.57rem;color:var(--text-dim);font-weight:700;text-align:center;">Chit</th>
                     </tr></thead>
                     <tbody id="mStatsMonthly"></tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Member QR Panel -->
+                <!-- Member QR Panel -->
         <div id="mQrPanel" style="display:none;margin-top:4px;"></div>
 
 
@@ -1078,7 +1055,7 @@
 <!-- Scripts — load in dependency order -->
 <script src="js/firebase.js?v=20260610_v1"></script>
 <script src="js/helpers.js?v=20260610_v1"></script>
-<script src="js/ui.js?v=20260614_v3"></script>
+<script src="js/ui.js?v=20260614_v4"></script>
 <script src="js/ledger.js?v=20260610_v1"></script>
 <script src="js/members.js?v=20260610_v1"></script>
 <script src="js/groups.js?v=20260610_v1"></script>
@@ -1086,7 +1063,7 @@
 <script src="js/backup.js?v=20260614_v5"></script>
 <script src="js/planner.js?v=20260613_v2"></script>
 <script src="js/print.js?v=20260610_v1"></script>
-<script src="js/auth.js?v=20260614_v2"></script>
+<script src="js/auth.js?v=20260614_v3"></script>
 <script src="js/quickview.js?v=20260610_v1"></script>
 <script src="js/qr.js?v=20260613_v3"></script>
 <script src="js/init.js?v=20260610_v1"></script>
