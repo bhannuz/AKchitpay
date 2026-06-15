@@ -221,40 +221,160 @@ async function renderMemberStats(filterGid, filterMonth) {
 async function renderMemberPayHistory() {
     const el = document.getElementById('memberLedgerArea2');
     if(!el || !CURRENT_USER) return;
-    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-dim);">Loading…</div>';
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-dim);font-size:0.8rem;">Loading…</div>';
     const mid  = CURRENT_USER.memberId;
     const ps   = await getCollection('payments');
     const gs   = await getCollection('groups');
     const myPays = ps.filter(p=>p.memberId===mid).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-    if(!myPays.length){ el.innerHTML='<div style="text-align:center;padding:24px;color:var(--text-dim);">No payments yet</div>'; return; }
-    el.style.cssText = 'background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;';
-    el.innerHTML = `<div style="padding:8px 14px;border-bottom:1px solid var(--border);font-size:0.65rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">💳 My Payment History</div>
-    <table style="width:100%;border-collapse:collapse;">
-        <thead><tr style="background:rgba(255,255,255,0.02);">
-            <th style="padding:6px 10px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:left;">Date</th>
-            <th style="padding:6px 10px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:right;">Paid</th>
-            <th style="padding:6px 10px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:right;">Balance</th>
-            <th style="padding:6px 10px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:left;">Group</th>
-            <th style="padding:6px 10px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:left;">Mode</th>
-            <th style="padding:6px 10px;font-size:0.62rem;color:var(--text-dim);font-weight:700;text-align:center;">Chit</th>
-        </tr></thead>
-        <tbody>${myPays.map((p,i)=>{
-            const g = gs.find(x=>x.id===p.groupId);
-            return `<tr style="border-bottom:${i<myPays.length-1?'1px solid rgba(255,255,255,0.04)':'none'};">
-                <td style="padding:7px 10px;font-size:0.72rem;color:var(--text-dim);white-space:nowrap;">${p.date||'—'}</td>
-                <td style="padding:7px 10px;font-size:0.75rem;font-weight:800;color:#34d399;text-align:right;white-space:nowrap;">${fmtAmt(parseFloat(p.paid)||0)}</td>
-                <td style="padding:7px 10px;font-size:0.72rem;color:${parseFloat(p.balance)>0?'#f87171':'#34d399'};text-align:right;white-space:nowrap;">${fmtAmt(parseFloat(p.balance)||0)}</td>
-                <td style="padding:7px 10px;font-size:0.72rem;color:var(--text-dim);max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${g?.name||'—'}</td>
-                <td style="padding:7px 10px;font-size:0.72rem;color:var(--text-dim);">${p.paidBy||'—'}</td>
-                <td style="padding:7px 10px;font-size:0.72rem;text-align:center;">${p.chitPicked==='Yes'?'✅':'—'}</td>
+
+    if(!myPays.length){
+        el.innerHTML='<div style="text-align:center;padding:30px;color:var(--text-dim);font-size:0.82rem;">No payments recorded yet.</div>';
+        return;
+    }
+
+    // Summary bar
+    const totalPaid = myPays.reduce((s,p)=>s+(parseFloat(p.paid)||0),0);
+    const totalBal  = myPays.reduce((s,p)=>s+(parseFloat(p.balance)||0),0);
+
+    el.style.cssText='';
+    el.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+            <div style="background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.25);border-radius:10px;padding:10px 12px;text-align:center;">
+                <div style="font-size:0.6rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;">Total Paid</div>
+                <div style="font-size:1rem;font-weight:900;color:#34d399;">${fmtAmt(totalPaid)}</div>
+            </div>
+            <div style="background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.25);border-radius:10px;padding:10px 12px;text-align:center;">
+                <div style="font-size:0.6rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;">Balance Due</div>
+                <div style="font-size:1rem;font-weight:900;color:${totalBal>0?'#f87171':'#34d399'};">${fmtAmt(totalBal)}</div>
+            </div>
+        </div>
+        <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+            <div style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:0.62rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;">💳 All Payments (${myPays.length})</div>
+            <table style="width:100%;border-collapse:collapse;">
+                <thead><tr style="background:rgba(255,255,255,0.02);">
+                    <th style="padding:6px 10px;font-size:0.6rem;color:var(--text-dim);font-weight:700;text-align:left;">Date</th>
+                    <th style="padding:6px 10px;font-size:0.6rem;color:var(--text-dim);font-weight:700;text-align:left;">Group</th>
+                    <th style="padding:6px 10px;font-size:0.6rem;color:var(--text-dim);font-weight:700;text-align:right;">Paid</th>
+                    <th style="padding:6px 10px;font-size:0.6rem;color:var(--text-dim);font-weight:700;text-align:right;">Bal</th>
+                    <th style="padding:6px 10px;font-size:0.6rem;color:var(--text-dim);font-weight:700;text-align:left;">Mode</th>
+                    <th style="padding:6px 10px;font-size:0.6rem;color:var(--text-dim);font-weight:700;text-align:center;">🎯</th>
+                </tr></thead>
+                <tbody>${myPays.map((p,i)=>{
+                    const g = gs.find(x=>x.id===p.groupId);
+                    const months = Array.isArray(p.monthSlots)&&p.monthSlots.length>1 ? ` (${p.monthSlots.length}mo)` : '';
+                    return `<tr style="border-bottom:${i<myPays.length-1?'1px solid rgba(255,255,255,0.04)':'none'};">
+                        <td style="padding:7px 10px;font-size:0.72rem;color:var(--text-dim);white-space:nowrap;">${p.date||'—'}</td>
+                        <td style="padding:7px 10px;font-size:0.72rem;color:white;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${g?.name||'—'}${months}</td>
+                        <td style="padding:7px 10px;font-size:0.75rem;font-weight:800;color:#34d399;text-align:right;white-space:nowrap;">${fmtAmt(parseFloat(p.paid)||0)}</td>
+                        <td style="padding:7px 10px;font-size:0.72rem;color:${parseFloat(p.balance)>0?'#f87171':'#34d399'};text-align:right;white-space:nowrap;">${fmtAmt(parseFloat(p.balance)||0)}</td>
+                        <td style="padding:7px 10px;font-size:0.72rem;color:var(--text-dim);">${p.paidBy||'—'}</td>
+                        <td style="padding:7px 10px;font-size:0.72rem;text-align:center;">${p.chitPicked==='Yes'?'✅':'—'}</td>
+                    </tr>`;
+                }).join('')}</tbody>
+            </table>
+        </div>`;
+}
+
+async function renderMemberStats(skipFilterInit) {
+    if(!CURRENT_USER || CURRENT_USER.role !== 'member') return;
+    const mid  = CURRENT_USER.memberId;
+    const ps   = await getCollection('payments');
+    const gs   = await getCollection('groups');
+    const ms   = await getCollection('members');
+    const m    = ms.find(x=>x.id===mid);
+    const myPaysAll = ps.filter(p=>p.memberId===mid);
+    const myGids    = [...new Set(myPaysAll.map(p=>p.groupId))];
+
+    // Populate filters once
+    const gSel = document.getElementById('mStatsGroupFilter');
+    const mSel = document.getElementById('mStatsMonthFilter');
+    if(!skipFilterInit && gSel){
+        const curG = gSel.value;
+        gSel.innerHTML = '<option value="">All Groups</option>' +
+            myGids.map(gid=>{ const g=gs.find(x=>x.id===gid); return `<option value="${gid}"${gid===curG?' selected':''}>${g?.name||gid}</option>`; }).join('');
+    }
+    if(!skipFilterInit && mSel){
+        const curM = mSel.value;
+        const months = [...new Set(myPaysAll.map(p=>(p.date||'').slice(0,7)).filter(Boolean))].sort().reverse();
+        mSel.innerHTML = '<option value="">All Months</option>' + months.map(m=>`<option value="${m}"${m===curM?' selected':''}>${m}</option>`).join('');
+    }
+
+    const activeGid   = gSel?.value||'';
+    const activeMonth = mSel?.value||'';
+    let myPays = myPaysAll;
+    if(activeGid)   myPays = myPays.filter(p=>p.groupId===activeGid);
+    if(activeMonth) myPays = myPays.filter(p=>(p.date||'').startsWith(activeMonth));
+
+    const totalPaid  = myPays.reduce((s,p)=>s+(parseFloat(p.paid)||0),0);
+    const totalBal   = myPays.reduce((s,p)=>s+(parseFloat(p.balance)||0),0);
+    const chitPicks  = myPays.filter(p=>p.chitPicked==='Yes').length;
+    const thisMonth  = new Date().toISOString().slice(0,7);
+    const monthPaid  = myPaysAll.filter(p=>(p.date||'').startsWith(thisMonth)).reduce((s,p)=>s+(parseFloat(p.paid)||0),0);
+
+    // Summary
+    const sumEl = document.getElementById('mStatsSummary');
+    if(sumEl) sumEl.innerHTML = [
+        ['💰 Total Paid',   fmtAmt(totalPaid),    '#f39c12'],
+        ['📋 Balance Due',  fmtAmt(totalBal),      totalBal>0?'#f87171':'#34d399'],
+        ['📅 This Month',   fmtAmt(monthPaid),     '#60a5fa'],
+        ['📝 Payments',     myPays.length,          '#a5b4fc'],
+        ['🎯 Chits Picked', chitPicks,              '#34d399'],
+        ['📂 My Groups',    myGids.length,          '#f59e0b'],
+    ].map(([lbl,val,col],i)=>`<tr style="border-bottom:${i<5?'1px solid rgba(255,255,255,0.05)':'none'};">
+        <td style="padding:7px 10px;font-size:0.75rem;color:var(--text-dim);">${lbl}</td>
+        <td style="padding:7px 10px;font-size:0.82rem;font-weight:800;color:${col};text-align:right;">${val}</td>
+    </tr>`).join('');
+
+    // Group progress — always show all groups regardless of filter (for context)
+    const grpEl = document.getElementById('mStatsGroups');
+    if(grpEl){
+        grpEl.innerHTML = myGids.length ? myGids.map(gid=>{
+            const g    = gs.find(x=>x.id===gid);
+            const gPay = myPaysAll.filter(p=>p.groupId===gid);
+            const paid = gPay.reduce((s,p)=>s+(parseFloat(p.paid)||0),0);
+            const bal  = gPay.reduce((s,p)=>s+(parseFloat(p.balance)||0),0);
+            const dur  = parseInt(g?.duration||g?.months||13);
+            const paidM= new Set();
+            gPay.forEach(p=>{ if(Array.isArray(p.monthSlots)) p.monthSlots.forEach(s=>paidM.add(s)); else if(p.monthSlot!=null) paidM.add(p.monthSlot); });
+            const pct  = Math.min(100,Math.round((paidM.size/dur)*100));
+            const hl   = activeGid===gid;
+            const nextDue = (g?.startDate||'') ? (() => {
+                // rough next due — not computed here, just show pending count
+                return `${dur - paidM.size} months left`;
+            })() : '';
+            return `<tr style="border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;${hl?'background:rgba(99,102,241,0.08);':''}" onclick="document.getElementById('mStatsGroupFilter').value='${gid}';renderMemberStats(true);">
+                <td style="padding:7px 8px;font-size:0.72rem;color:${hl?'#a5b4fc':'white'};font-weight:700;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${g?.name||gid}</td>
+                <td style="padding:7px 8px;font-size:0.72rem;color:#34d399;text-align:right;white-space:nowrap;">${fmtAmt(paid)}</td>
+                <td style="padding:7px 8px;font-size:0.72rem;color:${bal>0?'#f87171':'#34d399'};text-align:right;white-space:nowrap;">${fmtAmt(bal)}</td>
+                <td style="padding:7px 8px;">
+                    <div style="font-size:0.6rem;color:var(--text-dim);margin-bottom:2px;white-space:nowrap;">${paidM.size}/${dur} months</div>
+                    <div style="background:rgba(255,255,255,0.07);border-radius:3px;height:4px;overflow:hidden;">
+                        <div style="background:${pct>=100?'#34d399':'linear-gradient(90deg,#6366f1,#a5b4fc)'};width:${pct}%;height:100%;border-radius:3px;"></div>
+                    </div>
+                </td>
             </tr>`;
-        }).join('')}</tbody>
-    </table>`;
+        }).join('') : '<tr><td colspan="4" style="padding:14px;text-align:center;color:var(--text-dim);font-size:0.75rem;">No groups</td></tr>';
+    }
+
+    // Payment history filtered
+    const monEl = document.getElementById('mStatsMonthly');
+    if(monEl){
+        const sorted = [...myPays].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+        monEl.innerHTML = sorted.length ? sorted.map((p,i)=>{
+            const g = gs.find(x=>x.id===p.groupId);
+            const months = Array.isArray(p.monthSlots)&&p.monthSlots.length>1?` ×${p.monthSlots.length}`:'';
+            return `<tr style="border-bottom:${i<sorted.length-1?'1px solid rgba(255,255,255,0.04)':'none'};">
+                <td style="padding:6px 10px;font-size:0.72rem;color:var(--text-dim);white-space:nowrap;">${p.date||'—'}</td>
+                <td style="padding:6px 10px;font-size:0.75rem;font-weight:800;color:#34d399;text-align:right;white-space:nowrap;">${fmtAmt(parseFloat(p.paid)||0)}${months}</td>
+                <td style="padding:6px 10px;font-size:0.72rem;color:var(--text-dim);">${p.paidBy||'—'}</td>
+                <td style="padding:6px 10px;font-size:0.72rem;color:var(--text-dim);max-width:75px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${g?.name||'—'}</td>
+                <td style="padding:6px 10px;font-size:0.7rem;text-align:center;">${p.chitPicked==='Yes'?'✅':''}</td>
+            </tr>`;
+        }).join('') : '<tr><td colspan="5" style="padding:14px;text-align:center;color:var(--text-dim);font-size:0.75rem;">No payments for this filter</td></tr>';
+    }
 }
 
 async function renderMemberQrPanel() {
-    // memberQrArea is already inside mQrPanel (contains admin QR requests rendered by loadMemberQr)
-    // Just trigger a refresh of the QR data if needed
     if(CURRENT_USER && typeof loadMemberQr === 'function'){
         loadMemberQr(CURRENT_USER.memberId);
     }
