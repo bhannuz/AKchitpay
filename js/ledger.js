@@ -416,11 +416,11 @@ async function loadMemberLedger(){
                     </div>
                     <!-- Row 2 -->
                     <div style="background:rgba(165,180,252,0.08);border:1px solid rgba(165,180,252,0.25);border-top:2px solid #a5b4fc;border-radius:10px;padding:8px 10px;text-align:center;">
-                        <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:3px;">PENDING</div>
+                        <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:3px;">${isMember?'PROGRESS':'PENDING'}</div>
                         <div style="font-size:0.92rem;font-weight:900;color:#a5b4fc;">${monthsDone}/${totalMonths}</div>
                     </div>
                     <div style="background:rgba(155,89,182,0.08);border:1px solid rgba(155,89,182,0.25);border-top:2px solid #bb86fc;border-radius:10px;padding:8px 10px;text-align:center;">
-                        <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:3px;">COMMITMENT</div>
+                        <div style="font-size:0.58rem;color:var(--text-dim);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:3px;">${isMember?'MY COMMITMENT':'COMMITMENT'}</div>
                         <div style="font-size:0.82rem;font-weight:900;color:#bb86fc;">${myCommObj&&myCommObj.targetMonth?getOrdinal(myCommObj.targetMonth)+' Month':'—'}</div>
                     </div>
                     <div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.18);border-top:2px solid #818cf8;border-radius:10px;padding:8px 10px;text-align:center;">
