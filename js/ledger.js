@@ -324,7 +324,7 @@ async function loadMemberLedger(){
             ? '<span style="color:#f87171;font-size:0.72rem;font-weight:800;">All months taken</span>'
             : freeMonths.length===totalMonths
                 ? '<span style="color:#34d399;font-size:0.72rem;font-weight:800;">All months free</span>'
-                : freeMonths.slice(0,5).map(n=>getOrdinal(n)).join(', ') + (freeMonths.length>5?' +' + (freeMonths.length-5) + ' more':'');
+                : freeMonths.map(n=>getOrdinal(n)).join(', ');
 
         // Commitment chip for this member+slot
         const myCommObj = mComms.find(c => c.groupId===grp.id && (c.slotNum==null?1:c.slotNum)===slotNum);
