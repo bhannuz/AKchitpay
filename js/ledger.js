@@ -240,7 +240,7 @@ async function loadMemberLedger(){
                     <td style="text-align:center;color:${isPartialFullyPaid ? '#34d399' : '#f59e0b'};font-weight:800;font-size:0.8rem;">▶ ${slotIndex+1}</td>
                     <td style="color:${isPartialFullyPaid ? '#a5b4fc' : '#fbbf24'};font-weight:700;">${fmtDate(dueDate)}</td>
                     <td style="color:#c4b5fd;">${chitAmount>0?fmtAmt(chitAmount):'—'}</td>
-                    <td style="vertical-align:middle;color:${isPartialFullyPaid ? '#34d399' : '#f59e0b'};font-weight:700;">Multiple Payments</td>
+                    <td style="vertical-align:middle;font-size:0.68rem;">${monthPayments.map(p=>`<div style="color:#a5b4fc;white-space:nowrap;">${fmtDate(p.date)}</div>`).join('')}</td>
                     <td style="vertical-align:middle;color:${isPartialFullyPaid ? '#34d399' : '#fbbf24'};font-weight:700;">${fmtAmt(totalMonthPayments)}</td>
                     <td style="vertical-align:middle;">${_poCellMulti}</td>
                     <td style="vertical-align:middle;color:#f59e0b;">${mainIBal>0?fmtAmt(mainIBal):'—'}</td>
